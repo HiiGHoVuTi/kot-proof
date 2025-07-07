@@ -1,5 +1,4 @@
 From iris.heap_lang Require Import lang proofmode notation.
-From iris.bi.lib Require Import fixpoint_banach.
 From iris.bi Require Import derived_laws.
 
 From Deque Require Import tick.
