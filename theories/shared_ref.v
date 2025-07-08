@@ -88,6 +88,7 @@ Proof.
     { iNext. iExists v. iFrame. }
 Qed.
 
+(* Unused. *)
 Theorem πref_load `{forall x, Persistent (π x)} (ℓ : loc) : forall N,
   {{{ ℓ ⤇{N} π ∗ na_own ρ (↑N) }}} ! #ℓ {{{ v', RET v'; π v' ∗ na_own ρ (↑N) }}}.
 Proof.
@@ -100,6 +101,7 @@ Proof.
   - iIntros "H". iApply "Hψ". by iFrame "#".
 Qed.
 
+(* Unused. *)
 Theorem πref_store (ℓ : loc) (x : val) : forall N,
   {{{ ℓ ⤇{N} π ∗ π x ∗ na_own ρ (↑N) }}} #ℓ <- x {{{ RET #(); na_own ρ (↑N) }}}.
 Proof.
@@ -112,89 +114,13 @@ Proof.
   - iIntros "H". by iApply "Hψ".
 Qed.
 
-Definition use : val :=
-  λ: "r" "f",
-    let: "v" := !"r" in
-    let: "v'" := "f" "v" in
-    "r" <- "v'".
-
-Definition uses : val :=
-  λ: "r" "f",
-    let: "v" := !"r" in
-    let: "v'r" := "f" "v" in
-    "r" <- Fst "v'r";;
-    Snd "v'r".
-
+(* TODO eliminate [modify] *)
 Definition modify : val :=
   λ: "r" "f",
     let: "v" := !"r" in
     let: "v'" := "f" "v" in
     "r" <- "v'";;
     "v'".
-
-Theorem πref_read P `{forall v, Persistent (P v)} (ℓ : loc) : forall N,
-  {{{ ℓ ⤇{N} π ∗ na_own ρ (↑N) ∗ (∀ v, π v -∗ (P v ∗ π v)) }}} !#ℓ {{{ v', RET v'; P v' ∗ na_own ρ (↑N) }}}.
-Proof.
-  iIntros (N ψ) "(Hℓ & O & HP) Hψ".
-  iInv "Hℓ" as "[(%v & πv & ℓv) O]".
-  wp_load.
-  iModIntro.
-  iDestruct ("HP" with "πv") as "[Pv πv]".
-  iFrame.
-  iIntros "O".
-  iApply "Hψ".
-  iFrame.
-Qed.
-
-Theorem πref_use (ℓ : loc) :
-  ∀ (f : val) (R : iProp Σ) (N N' : namespace),
-    ↑N ⊆@{coPset} ↑N' →
-    na_own ρ (↑N') -∗
-    ℓ ⤇{N} π -∗
-    (∀ v, π v -∗ na_own ρ (↑N' ∖ ↑N) -∗
-         WP f v {{ v', π v' ∗ R ∗ na_own ρ (↑N' ∖ ↑N) }})
-    -∗ WP use #ℓ f
-    {{ _, ℓ ⤇{N} π ∗ R ∗ na_own ρ (↑N') }}.
-Proof.
-  iIntros (f R N N' Hincl) "Hown #ι Hf".
-  rewrite /use.
-  wp_pures.
-  iInv "ι" as "[(%v & Hv & Hℓ) O]".
-  wp_load. wp_pures.
-  wp_bind (f v).
-  iApply (wp_wand with "[Hf Hv O]").
-    { iApply ("Hf" with "Hv"). done. }
-  iIntros (v') "(Hv' & R & O)".
-  wp_pures. wp_store.
-  iModIntro. iFrame.
-  iIntros "H".
-  by iFrame "#".
-Qed.
-
-Theorem πref_uses (ℓ : loc) :
-  ∀ (f : val) (R : val → iProp Σ) (N N' : namespace),
-    ↑N ⊆@{coPset} ↑N' →
-    na_own ρ (↑N') -∗
-    ℓ ⤇{N} π -∗
-    (∀ v, π v -∗ na_own ρ (↑N' ∖ ↑N) -∗
-         WP f v {{ v'r, ∃ v' r, ⌜ v'r = (v', r)%V ⌝ ∗ π v' ∗ R r ∗ na_own ρ (↑N' ∖ ↑N) }})
-    -∗ WP uses #ℓ f
-    {{ r, ℓ ⤇{N} π ∗ R r ∗ na_own ρ (↑N') }}.
-Proof.
-  iIntros (f R N N' Hincl) "Hown #ι Hf".
-  rewrite /uses.
-  wp_pures.
-  iInv "ι" as "[(%v & Hv & Hℓ) O]".
-  wp_load. wp_pures.
-  wp_bind (f v).
-  iApply (wp_wand with "[Hf Hv O]").
-    { iApply ("Hf" with "Hv"). done. }
-  iIntros (v'r) "(%v' & %r & -> & πv' & Rr & O)".
-  wp_pures. wp_store. wp_pures.
-  iModIntro. iFrame.
-  iIntros "O".
-  by iFrame "#".
-Qed.
 
 Theorem πref_load_open (ℓ : loc) :
   ∀ (N N' : namespace), ↑N ⊆@{coPset} ↑N' →
