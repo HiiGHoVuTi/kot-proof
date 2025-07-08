@@ -9,7 +9,7 @@ From AAC_tactics Require Import AAC.
 From AAC_tactics Require Import Instances.
 Import Instances.Lists.
 
-From Deque Require Import shared_ref. 
+From Deque Require Import shared_ref.
 
 (* Section notations *)
 Notation "⋅ x" := [x] (at level 60).
@@ -27,35 +27,35 @@ Section assumptions.
   Section buffers.
     (* Buffers will have bounded size, guaranteeing O(1) time and space complexity *)
 
-    Definition isBuffer (o : list val) : val -> iProp Σ.   
+    Definition isBuffer (o : list val) : val -> iProp Σ.
     Admitted.
-  
+
     Global Instance isBufferPersistent o v : Persistent (isBuffer o v).
     Admitted.
-  
+
     Definition empty_buffer : val.
     Admitted.
-  
+
     Axiom empty_is_buffer : ⊢ isBuffer [] empty_buffer.
-  
+
     Definition bpush : val.
     Admitted.
-  
+
     Property bpush_spec : forall o b x,
       {{{ isBuffer o b }}}
         bpush x b
       {{{ b', RET b'; isBuffer (⋅x ++ o) b' }}}.
     Admitted.
-    
+
     Definition bpop : val.
     Admitted.
-    
+
     Property bpop_spec : forall o b x,
       {{{ isBuffer (⋅x ++ o) b }}}
         bpop b
       {{{ b', RET (x, b')%V; isBuffer o b' }}}.
     Admitted.
-  
+
     Definition binject : val.
     Admitted.
 
@@ -64,7 +64,7 @@ Section assumptions.
         binject x b
       {{{ b', RET b'; isBuffer (o ++ ⋅x) b' }}}.
     Admitted.
-  
+
     Definition beject : val.
     Admitted.
 
@@ -73,10 +73,10 @@ Section assumptions.
         beject b
       {{{ b', RET (x, b')%V; isBuffer o b' }}}.
     Admitted.
-  
+
     Definition bsize : val.
     Admitted.
-  
+
     Property bsize_spec : forall o b,
       {{{ isBuffer o b }}}
         bsize b
@@ -89,8 +89,8 @@ Section assumptions.
     Property partition_buffer_left_spec : forall o b,
       {{{ isBuffer o b ∗ ⌜ length o ∈ [2..6] ⌝ }}}
         partition_buffer_left b
-      {{{ b1 b2, RET (b1, b2)%V; 
-        ∃ o1 o2, isBuffer o1 b1 ∗ isBuffer o2 b2 ∗ 
+      {{{ b1 b2, RET (b1, b2)%V;
+        ∃ o1 o2, isBuffer o1 b1 ∗ isBuffer o2 b2 ∗
           ⌜ length o1 ∈ [2; 3] ∧ length o2 ∈ [0; 2; 3] ∧ o1 ++ o2 = o ⌝ }}}.
     Admitted.
 
@@ -100,8 +100,8 @@ Section assumptions.
     Property partition_buffer_right_spec : forall o b,
       {{{ isBuffer o b ∗ ⌜ length o ∈ [2..6] ⌝ }}}
         partition_buffer_right b
-      {{{ b1 b2, RET (b1, b2)%V; 
-        ∃ o1 o2, isBuffer o1 b1 ∗ isBuffer o2 b2 ∗ 
+      {{{ b1 b2, RET (b1, b2)%V;
+        ∃ o1 o2, isBuffer o1 b1 ∗ isBuffer o2 b2 ∗
           ⌜ length o1 ∈ [0; 2; 3] ∧ length o2 ∈ [2; 3] ∧ o1 ++ o2 = o ⌝ }}}.
     Admitted.
 
@@ -128,20 +128,20 @@ Section shared_cadeques.
   Inductive five_tuple_configuration : nat -> nat -> nat -> nat -> nat -> Prop :=
     | suffix_only : forall s, s ∈ [1..8] -> five_tuple_configuration 0 0 0 0 s
     | has_middle : forall p ld rd s, p ∈ [3..6] -> s ∈ [3..6] -> five_tuple_configuration p ld 2 rd s.
- 
+
   (* Buffer unwinding: abstract content depends on level *)
   Definition isBufferAtLevelPre (size : nat) : isCadequeType -d> isCadequeType := (
   λ self_triple n content buf,
     match n with
     | 0 => isBuffer content buf ∗ ⌜ length content = size ⌝
-    | S n => 
+    | S n =>
         ∃ (triples : list val) (triple_contents : list (list val)),
           isBuffer triples buf ∗
           ⌜ content = concat triple_contents ∧ length triples = size ⌝ ∗
           [∗ list] tri; c ∈ triples; triple_contents, ▷ self_triple n c tri
     end
   )%I.
-  
+
   Global Instance isBufferAtLevelPreContractive size : Contractive (isBufferAtLevelPre size).
   Proof.
     rewrite /isBufferAtLevelPre.
@@ -168,13 +168,13 @@ Section shared_cadeques.
   Let fCadeque (triple_pred : isCadequeType) (cadeque_pred : isCadequeType) : isCadequeType := (
     λ n o d,
       (⌜ d = NONEV ∧ o = [] ⌝) ∨
-      (∃ ℓ : loc, ⌜ d = SOMEV #ℓ ⌝ ∗ 
+      (∃ ℓ : loc, ⌜ d = SOMEV #ℓ ⌝ ∗
         ℓ ⤇ fFiveTuple triple_pred cadeque_pred n o)
   )%I.
 
   Let fTriple (triple_pred : isCadequeType) (cadeque_pred : isCadequeType) : isCadequeType := (
     λ n o t,
-      ∃ (fst ch lst : val) 
+      ∃ (fst ch lst : val)
         (fst_content child_content lst_content : list val)
         (kFst kLst : nat),
         ⌜ triple_configuration kFst (length child_content) kLst ⌝ ∗
@@ -186,7 +186,7 @@ Section shared_cadeques.
   )%I.
 
   (* Prove contractivity *)
-  Local Instance fCadeque_contractive : 
+  Local Instance fCadeque_contractive :
     ∀ n, Proper (dist_later n ==> dist_later n ==> dist n) fCadeque.
   Proof.
     intros k cadeque1 cadeque2 Hdist_cad triple1 triple2 Hdist_tri.
@@ -200,10 +200,10 @@ Section shared_cadeques.
     f_equiv. by apply (Hdist_tri _ _ _).
     f_equiv. by apply isBufferAtLevelPreContractive, dist_dist_later, Hdist_cad.
     f_equiv. apply (Hdist_tri _ _ _).
-    f_equiv. apply isBufferAtLevelPreContractive, dist_dist_later, Hdist_cad. 
+    f_equiv. apply isBufferAtLevelPreContractive, dist_dist_later, Hdist_cad.
   Qed.
 
-  Local Instance fTriple_contractive : 
+  Local Instance fTriple_contractive :
     ∀ n, Proper (dist_later n ==> dist n ==> dist n) fTriple.
   Proof.
     intros k cadeque1 cadeque2 Hdist_cad triple1 triple2 Hdist_tri.
@@ -223,14 +223,14 @@ Section shared_cadeques.
   Definition IsCadeque o d := isCadeque 0 o d.
 
   (* Unfolding lemmas come directly from the fixpoint theory *)
-  Lemma isCadeque_unfold n o d : 
+  Lemma isCadeque_unfold n o d :
     isCadeque n o d ⊣⊢ fCadeque isTriple isCadeque n o d.
   Proof.
     symmetry.
     apply (fixpoint_B_unfold fTriple fCadeque _ _ _).
   Qed.
 
-  Lemma isTriple_unfold n o t : 
+  Lemma isTriple_unfold n o t :
     isTriple n o t ⊣⊢ fTriple isTriple isCadeque n o t.
   Proof.
     symmetry.
@@ -238,22 +238,22 @@ Section shared_cadeques.
   Qed.
 
   (* Persistence instances *)
-  Global Instance isBufferAtPersistent s ϕ n b c : 
+  Global Instance isBufferAtPersistent s ϕ n b c :
     (∀ n o d, Persistent (ϕ n o d)) → Persistent (isBufferAtLevelPre s ϕ n b c).
-  Proof. 
-    intros HPers. 
-    rewrite /isBufferAtLevelPre. 
+  Proof.
+    intros HPers.
+    rewrite /isBufferAtLevelPre.
     destruct n; apply _.
   Qed.
-  
+
   Global Instance isCadequePersistent n o d : Persistent (isCadeque n o d).
-  Proof. 
-    rewrite isCadeque_unfold /fCadeque. 
+  Proof.
+    rewrite isCadeque_unfold /fCadeque.
     apply _.
   Qed.
 
   Global Instance isTriplePersistent n o t : Persistent (isTriple n o t).
-  Proof. 
+  Proof.
     rewrite /isTriple /fixpoint_A /ofe.fixpoint_AB.
     revert n o t. apply fixpoint_ind.
     - intros f1 f2 H P n o t. rewrite -(H _ _ _) //.
@@ -275,12 +275,12 @@ Section shared_cadeques.
   Qed.
 
   Global Instance isFiveTuplePersistent n o d : Persistent (isFiveTuple n o d).
-  Proof. 
+  Proof.
     apply _.
   Qed.
 
   Global Instance isElementPersistent n o e : Persistent (isElement n o e).
-  Proof. 
+  Proof.
     destruct n; apply _.
   Qed.
 
@@ -318,7 +318,7 @@ Section algorithms.
         V)%E
       (at level 190, v,w,x,y,z at next level, U at next level, V at next level, only parsing).
 
-  Definition push : val := 
+  Definition push : val :=
     rec: "push" "x" "d" :=
     match: "d" with
       NONE => singleton "x"
@@ -333,8 +333,8 @@ Section algorithms.
               let:2 ("x2", "suffix") := bpop "suffix" in
               let:2 ("x3", "suffix") := bpop "suffix" in
               let: "prefix" := bpush "x1" (bpush "x2" (bpush "x3" empty_buffer)) in
-              let:2 ("x4", "suffix") := bpop "suffix" in 
-              let:2 ("x5", "suffix") := bpop "suffix" in 
+              let:2 ("x4", "suffix") := bpop "suffix" in
+              let:2 ("x5", "suffix") := bpop "suffix" in
               let: "middle" := bpush "x4" (bpush "x5" empty_buffer) in
               ( "prefix", empty, "middle", empty, "suffix" )
             ) else "v"
@@ -350,9 +350,9 @@ Section algorithms.
           )
         )
       in if: bsize "middle" = #0%nat
-        then 
-          SOME (ref ("prefix", "left_deque", "middle", "right_deque", bpush "x" "suffix")) 
-        else   
+        then
+          SOME (ref ("prefix", "left_deque", "middle", "right_deque", bpush "x" "suffix"))
+        else
           SOME (ref (bpush "x" "prefix", "left_deque", "middle", "right_deque", "suffix"))
     end.
 
@@ -360,9 +360,9 @@ Section algorithms.
 
   Definition concat : val :=
     λ: "d1" "d2",
-    match: "d1" with NONE => "d2" 
+    match: "d1" with NONE => "d2"
     | SOME "r1" =>
-    match: "d2" with NONE => "d1" 
+    match: "d2" with NONE => "d1"
     | SOME "r2" =>
     let:5 ("pr1", "ld1", "md1", "rd1", "sf1") := !"r1" in
     if: bsize "md1" = #0%nat then push_whole_buffer push "sf1" "d2" else
@@ -373,7 +373,7 @@ Section algorithms.
     let: "middle" := bpush "x" (bpush "y" empty_buffer) in
     let:2 ("s1'", "s1''") := partition_buffer_left "sf1'" in
     let: "ld1'" := inject "ld1" ("md1", "rd1", "s1'") in
-    let: "ld1''" := if: bsize "s1''" = #0%nat then "ld1'" 
+    let: "ld1''" := if: bsize "s1''" = #0%nat then "ld1'"
       else inject "ld1'" ("s1''", empty, empty_buffer) in
     let:2 ("p2'", "p2''") := partition_buffer_right "pr2'" in
     let: "rd2'" := push ("p2''", "ld2", "md2") "rd2" in
@@ -398,7 +398,7 @@ Section proofs.
     apply bool_decide_eq_true_1 in H.
     by apply bool_decide_eq_true_2, f_equal, f_equal, f_equal.
   Qed.
-  
+
   Lemma bool_decide_code_false (a : nat) (b : nat) : bool_decide (a = b) = false -> bool_decide (#a = #b) = false.
   Proof.
     intro.
@@ -420,7 +420,7 @@ Section proofs.
     wp_pures.
     wp_bind (ref _)%E.
     wp_apply (sref_alloc (isFiveTuple 0 (⋅ x))) as "%ℓ Hℓ".
-      { rewrite /isFiveTuple. 
+      { rewrite /isFiveTuple.
         iExists empty_buffer, empty, empty_buffer, empty, b,
                 []          , []   , []          , []    , (⋅x),
                 0, 0, 1.
@@ -440,12 +440,12 @@ Section proofs.
     done.
   Qed.
 
-  Ltac isEmptyBufferAtDepth depth := 
-  destruct depth; 
+  Ltac isEmptyBufferAtDepth depth :=
+  destruct depth;
   [ iSplitL; [by iApply empty_is_buffer | rewrite //]
   | iExists [], []; iSplitL; try iSplitL; rewrite //; by iApply empty_is_buffer ].
 
-  Lemma bsize_better_spec k n o b : 
+  Lemma bsize_better_spec k n o b :
     {{{ isBufferAtLevel k n o b }}}
       bsize b
     {{{ RET #k; True }}}.
@@ -476,7 +476,7 @@ Section proofs.
             0, 0, 1.
     rewrite /=.
     iSplitR. rewrite //.
-    iSplitR. iPureIntro. constructor. auto with find_in_list. 
+    iSplitR. iPureIntro. constructor. auto with find_in_list.
     iSplitR. isEmptyBufferAtDepth depth.
     iSplitR. isEmptyCadeque.
     iSplitR. isEmptyBufferAtDepth depth.
@@ -499,10 +499,10 @@ Section proofs.
     - iDestruct "H" as "[_ %Heq]". iPureIntro; by apply nil_length_inv.
     - iDestruct "H" as "(%t & %c & _ & (%Hc & %Heq) & H)".
       iDestruct (big_sepL2_length with "H") as "%Hl".
-      iPureIntro. 
+      iPureIntro.
       rewrite Hc.
-      rewrite Hl in Heq. 
-      apply nil_length_inv in Heq. 
+      rewrite Hl in Heq.
+      apply nil_length_inv in Heq.
       by rewrite Heq //.
   Qed.
 
@@ -517,7 +517,7 @@ Section proofs.
   Proof.
     destruct n; iIntros (o oX size ψ) "[Hx Hb] Hψ".
     - iCombine "Hx Hb" as "[-> [Hb %sEqL]]".
-      wp_apply (bpush_spec with "Hb") as "%b' Hb'". 
+      wp_apply (bpush_spec with "Hb") as "%b' Hb'".
       iApply "Hψ".
       iSplitL. done.
       iPureIntro. simpl; auto.
@@ -550,7 +550,7 @@ Section proofs.
     destruct n; iIntros (o size ψ) "Hb Hψ".
     - iDestruct "Hb" as "[Hb %sEqL]".
       destruct o. by inversion sEqL.
-      wp_apply (bpop_spec with "Hb") as "%b' Hb'". 
+      wp_apply (bpop_spec with "Hb") as "%b' Hb'".
       iApply "Hψ".
       iExists (⋅ v).
       iFrame. iSplit; iPureIntro.
@@ -583,7 +583,7 @@ Section proofs.
     {{{ b' x, RET (b', x); ∃ oX o', isBufferAtLevel size n o' b' ∗ ⌜ o = o' ++ oX ⌝ ∗ isElement n oX x }}}.
   Admitted.
 
-  Ltac solve_no_middle Heq H H1 := 
+  Ltac solve_no_middle Heq H H1 :=
   iSplitR; [done |];
   iSplitR; [iPureIntro; constructor; auto with find_in_list |];
   iSplitR; [trivial |];
@@ -605,7 +605,7 @@ Section proofs.
 
   Ltac invert_all_in :=
   repeat match goal with
-  | H : _ ∈ _ |- _ => 
+  | H : _ ∈ _ |- _ =>
     first
     [ inversion H; clear H; auto 10 with find_in_list
     | inversion H; clear H; [ by contradiction |]
@@ -638,10 +638,10 @@ Section proofs.
         ℓisCadeque ℓ. iModIntro. rewrite !app_nil_r //.
     - wp_pures.
       rewrite /modify. wp_pures.
-      wp_apply (sref_load with "Hℓ") 
+      wp_apply (sref_load with "Hℓ")
         as "%v #Hv".
-      iCombine "Hv Hv" as "[_ (%pr & %ld & %md & %rd & %sf & %prC & %ldC & %mdC & %rdC & %sfC 
-            & %kPr & %kMd & %kSf & -> & %cfg 
+      iCombine "Hv Hv" as "[_ (%pr & %ld & %md & %rd & %sf & %prC & %ldC & %mdC & %rdC & %sfC
+            & %kPr & %kMd & %kSf & -> & %cfg
             & #Hpr & Hld & #Hmd & Hrd & #Hsf & %Heq)]".
       wp_pures.
       wp_bind (if: _ then _ else _)%E.
@@ -662,7 +662,7 @@ Section proofs.
           wp_pures.
           wp_apply (pop_buffer_element_spec with "Hsf'") as "%x3 %b3 (%oX3 & %o3 & Hsf' & -> & Hx3)".
           wp_pures.
-          wp_apply (push_buffer_element_spec with "[Hx3]") as "%bp3 Hbp". 
+          wp_apply (push_buffer_element_spec with "[Hx3]") as "%bp3 Hbp".
             { iFrame. rewrite Heqmd. by iApply empty_is_buffer_at. }
           wp_apply (push_buffer_element_spec with "[Hbp Hx2]") as "%bp2 Hbp". by iFrame.
           wp_apply (push_buffer_element_spec with "[Hbp Hx1]") as "%pr' #Hpr'". by iFrame.
@@ -671,14 +671,14 @@ Section proofs.
           wp_pures.
           wp_apply (pop_buffer_element_spec with "Hsf'") as "%x5 %sf' (%oX5 & %o5 & #Hsf' & -> & Hx5)".
           wp_pures.
-          wp_apply (push_buffer_element_spec with "[Hx5]") as "%bp5 Hbm". 
+          wp_apply (push_buffer_element_spec with "[Hx5]") as "%bp5 Hbm".
             { iFrame. by iApply empty_is_buffer_at. }
           wp_apply (push_buffer_element_spec with "[Hbm Hx4]") as "%md' #Hmd'". by iFrame.
           wp_pures.
           wp_bind (#ℓ <- _)%E.
           rewrite !app_nil_r !Heqmd.
           wp_apply (sref_store) as "_".
-          -- iSplitR. iExact "Hℓ". 
+          -- iSplitR. iExact "Hℓ".
             iExists pr', empty, md', empty, sf',
               (oX1 ++ oX2 ++ oX3), [], (oX4 ++ oX5), [], o5,
               3, 2, 3.
@@ -718,8 +718,8 @@ Section proofs.
             wp_bind (ref _)%E.
             wp_apply (sref_alloc (isFiveTuple depth (oX ++ oD)) with "[Hx]") as "%ℓ' Hℓ'".
             -- iExists pr, ld, md, rd, sf',
-                [], [], [], [], (oX ++ oD), 
-                0, 0, (S kSf). 
+                [], [], [], [], (oX ++ oD),
+                0, 0, (S kSf).
               inversion cfg; [| exfalso; lia ].
               iDestruct (empty_buffer_is_empty with "Hpr") as "->".
               iDestruct (empty_buffer_is_empty with "Hmd") as "->".
@@ -749,7 +749,7 @@ Section proofs.
           wp_pures.
           wp_apply (eject_buffer_element_spec with "Hpr'") as "%pr2 %x5 (%oX5 & %o5 & #Hpr2 & -> & Hx5)".
           wp_pures.
-          wp_apply (push_buffer_element_spec with "[Hx6]") as "%bs6 Hbp". 
+          wp_apply (push_buffer_element_spec with "[Hx6]") as "%bs6 Hbp".
             { iFrame. by iApply empty_is_buffer_at. }
           wp_apply (push_buffer_element_spec with "[Hbp Hx5]") as "%pr' #Hpr'". by iFrame.
           do 4 wp_pure.
@@ -779,7 +779,7 @@ Section proofs.
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; by auto with find_in_list. }
             iPureIntro; aac_rewrite Heq; aac_reflexivity.
-          -- wp_pures. 
+          -- wp_pures.
             wp_apply (bsize_better_spec with "Hmd") as "_".
             wp_pures. rewrite Heqmd2. wp_pures.
             wp_apply (push_buffer_element_spec with "[Hx Hpr2]") as "%pr3 #Hpr3". by iFrame "#".
@@ -821,7 +821,7 @@ Section proofs.
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; [invert_all_in | auto with find_in_list]. }
             iPureIntro; aac_rewrite Heq; aac_reflexivity.
-          -- wp_pures. 
+          -- wp_pures.
             iApply "Hψ".
             ℓisCadeque ℓ'.
             iExact "Hℓ'".
@@ -836,7 +836,7 @@ Section proofs.
     rewrite /IsCadeque.
     wp_apply (push_spec_helper with "[HD]") as "%d' HD'".
       { iFrame. rewrite /isElement. done. }
-    by iApply "Hψ". 
+    by iApply "Hψ".
   Qed.
 
   Corollary inject_spec oD (x : val) (d : val) :
@@ -873,8 +873,8 @@ Section proofs.
     iDestruct "Hd2" as "[[-> ->] | (%ℓ2 & -> & #Hℓ2)]".
     { wp_pures. iApply "Hψ". ℓisCadeque ℓ1. rewrite app_nil_r. iExact "Hℓ1". }
     wp_pures.
-    wp_apply (sref_load with "Hℓ1") as "%v 
-      (%pr1 & %ld1 & %md1 & %rd1 & %sf1 & %oPr1 & %oLd1 & %oMd1 & %oRd1 & %oSf1 & 
+    wp_apply (sref_load with "Hℓ1") as "%v
+      (%pr1 & %ld1 & %md1 & %rd1 & %sf1 & %oPr1 & %oLd1 & %oMd1 & %oRd1 & %oSf1 &
       %kPr1 & %kMd1 & %kSf1 & -> & %cfg1 & #Hpr1 & #Hld1 & #Hmd1 & #Hrd1 & #Hsf1 & %Ho1)".
     wp_pures.
     wp_apply (bsize_better_spec with "Hmd1") as "_".
@@ -899,7 +899,7 @@ Section proofs.
     apply bool_decide_code_false in Heqb as ->.
     wp_pures.
     wp_apply (sref_load with "Hℓ2") as "%v'
-      (%pr2 & %ld2 & %md2 & %rd2 & %sf2 & %oPr2 & %oLd2 & %oMd2 & %oRd2 & %oSf2 & 
+      (%pr2 & %ld2 & %md2 & %rd2 & %sf2 & %oPr2 & %oLd2 & %oMd2 & %oRd2 & %oSf2 &
       %kPr2 & %kMd2 & %kSf2 & -> & %cfg2 & #Hpr2 & #Hld2 & #Hmd2 & #Hrd2 & #Hsf2 & %Ho2)".
     wp_pures.
     wp_apply (bsize_better_spec with "Hmd2") as "_".
@@ -913,5 +913,5 @@ Section proofs.
         { iSplitL. iExact "Hsf2". ℓisCadeque ℓ1. iExact "Hℓ1". }
       iApply "Hψ".
   Abort.
-  
+
 End proofs.

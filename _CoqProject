@@ -1,5 +1,5 @@
 -R . Deque
 
 theories/shared_ref.v
-theories/cadeque.v
+theories/deque.v
 theories/tick.v
