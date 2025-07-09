@@ -1007,8 +1007,22 @@ Section proofs.
     - iIntros (k o b ψ) "[(%tr & %con & #Hb & (-> & <-) & Hall) %Hk] Hψ".
       wp_apply partition_buffer_left_spec as (b1 b2) "(%o1 & %o2 & Hb1 & Hb2 & (%Hl1 & %Hl2 & <-))".
         by iFrame "#".
-      iApply "Hψ".
-  Admitted.
+      iDestruct (big_sepL2_app_inv_l with "Hall") as "(%con1 & %con2 & %Heq & H1 & H2)".
+      iApply ("Hψ" $! b1 b2 (List.concat con1) (List.concat con2)).
+      iSplitL "Hb1 H1".
+        { iExists o1, con1. iFrame.
+          iSplitR. done.
+          iApply (big_sepL2_mono with "H1"); auto.
+        }
+      iSplitL.
+        { iExists o2, con2. iFrame.
+          iSplitR. done.
+          iApply (big_sepL2_mono with "H2"); auto.
+        }
+      iPureIntro.
+      do 2 (split; auto).
+      rewrite -concat_app -Heq //.
+  Qed.
 
   Property partition_buffer_right_better_spec : forall lvl k o b,
     {{{ buffer π k lvl o b ∗ ⌜ k ∈ [2..6] ⌝ }}}
