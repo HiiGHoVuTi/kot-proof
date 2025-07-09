@@ -88,7 +88,7 @@ Proof.
     { iNext. iExists v. iFrame. }
 Qed.
 
-(* Unused. *)
+(* Unused? TODO confirm or remove this comment *)
 Theorem πref_load `{forall x, Persistent (π x)} (ℓ : loc) : forall N,
   {{{ ℓ ⤇{N} π ∗ na_own ρ (↑N) }}} ! #ℓ {{{ v', RET v'; π v' ∗ na_own ρ (↑N) }}}.
 Proof.
