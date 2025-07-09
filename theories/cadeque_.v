@@ -137,7 +137,7 @@ Section shared_cadeques.
     | S n =>
         ∃ (triples : list val) (triple_contents : list (list val)),
           isBuffer triples buf ∗
-          ⌜ content = concat triple_contents ∧ length triples = size ⌝ ∗
+          ⌜ content = dconcat triple_contents ∧ length triples = size ⌝ ∗
           [∗ list] tri; c ∈ triples; triple_contents, ▷ self_triple n c tri
     end
   )%I.
@@ -297,7 +297,7 @@ Section algorithms.
 
   Let empty := NONEV.
 
-  Example singleton : val :=
+  Example singleton_deque : val :=
     λ: "x", SOME (ref (empty_buffer, NONEV, empty_buffer, NONEV, bpush "x" empty_buffer)%E).
 
   Notation "'let:2' ( x , y ) := u 'in' v"
@@ -321,7 +321,7 @@ Section algorithms.
   Definition push : val :=
     rec: "push" "x" "d" :=
     match: "d" with
-      NONE => singleton "x"
+      NONE => singleton_deque "x"
     | SOME "r" =>
       let:5 ("prefix", "left_deque", "middle", "right_deque", "suffix") :=
         modify "r" (λ: "v",
@@ -358,7 +358,7 @@ Section algorithms.
 
   Corollary inject : val. Admitted.
 
-  Definition concat : val :=
+  Definition dconcat : val :=
     λ: "d1" "d2",
     match: "d1" with NONE => "d2"
     | SOME "r1" =>
@@ -409,11 +409,11 @@ Section proofs.
     by apply Nat2Z.inj'.
   Qed.
 
-  Example singleton_spec : forall x : val,
-    {{{ emp }}} singleton x {{{ d, RET d; IsCadeque (⋅x) d }}}.
+  Example singleton_deque_spec : forall x : val,
+    {{{ emp }}} singleton_deque x {{{ d, RET d; IsCadeque (⋅x) d }}}.
   Proof.
     iIntros (x Φ) "_ Hψ".
-    rewrite /singleton. wp_pures.
+    rewrite /singleton_deque. wp_pures.
     wp_bind (bpush _ _)%E.
     wp_apply (bpush_spec) as "%b #Hb".
       { iApply empty_is_buffer. }
@@ -468,7 +468,7 @@ Section proofs.
       iSplitR; done.
   Qed.
 
-  Lemma singleton_better : forall depth x oX b, isElement depth oX x -∗ isBuffer (⋅x) b -∗ isFiveTuple depth oX (empty_buffer, NONEV, empty_buffer, NONEV, b)%V.
+  Lemma singleton_deque_better : forall depth x oX b, isElement depth oX x -∗ isBuffer (⋅x) b -∗ isFiveTuple depth oX (empty_buffer, NONEV, empty_buffer, NONEV, b)%V.
   Proof.
     iIntros (depth x oX b) "Hx #Hb".
     iExists empty_buffer, empty, empty_buffer, empty, b,
@@ -626,13 +626,13 @@ Section proofs.
     rewrite {1} isCadeque_unfold.
     iDestruct "Hd" as "[[-> ->] | (%ℓ & -> & #Hℓ)]".
     - wp_pures.
-      rewrite /singleton. wp_pures.
+      rewrite /singleton_deque. wp_pures.
       wp_apply bpush_spec as "%b #Hb".
         { iApply empty_is_buffer. }
       wp_pures.
       wp_bind (ref _)%E.
       wp_apply (sref_alloc (isFiveTuple depth oX) with "[Hx]") as "%ℓ #Hℓ".
-      + rewrite app_nil_r. by iApply (singleton_better with "Hx").
+      + rewrite app_nil_r. by iApply (singleton_deque_better with "Hx").
       + wp_pures.
         iApply "Hψ".
         ℓisCadeque ℓ. iModIntro. rewrite !app_nil_r //.
@@ -857,9 +857,9 @@ Section proofs.
     {{{ d', RET d'; isCadeque lvl (oD ++ oB) d' }}}.
   Admitted.
 
-  Theorem concat_spec (d1 d2 : val) : forall o1 o2,
+  Theorem dconcat_spec (d1 d2 : val) : forall o1 o2,
     {{{ IsCadeque o1 d1 ∗ IsCadeque o2 d2 }}}
-      concat d1 d2
+      dconcat d1 d2
     {{{ d', RET d'; IsCadeque (o1 ++ o2) d' }}}.
   Proof.
     iIntros (o1 o2 ψ) "[Hd1 Hd2] Hψ".
