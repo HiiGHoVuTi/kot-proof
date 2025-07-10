@@ -908,99 +908,27 @@ Section proofs.
       }
     wp_pures.
     wp_bind (if: _ then _ else _)%E.
-    wp_apply (bsize_better_spec with "Hs1''") as "_".
-    wp_pures.
-    destruct (bool_decide (ks1'' = 0)) eqn:?.
-    + apply bool_decide_eq_true_1 in Heqb as Heqs1.
-      apply bool_decide_code_true in Heqb as ->.
+    iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
+    iDestruct ("A" with "O") as "O".
+    wp_apply (wp_strong_mono _ _ _ _ _
+      (λ v, isDeque _ 1 (oLd1 ++ oMd1 ++ oRd1 ++ os1' ++ os1'') v ∗ Token π 0)%I
+      with "[O ι]") as "%ld1'' [#Hd1'' O]"; try done.
+    {
+     wp_apply (bsize_better_spec with "Hs1''") as "_".
       wp_pures.
-      wp_apply (partition_buffer_right_better_spec with "[Hpr2']") as "%p2' %p2'' %op2' %op2'' %kp2' %kp2'' (#Hp2' & #Hp2'' & (%Hp21' & %Hp2'' & %Hop2eq))".
-        { iFrame. iPureIntro. invert_all_in. }
-      wp_pures.
-      iDestruct ("A" with "O") as "O".
-      iDestruct (na_own_acc _ _ _ (next_stage 0) with "O") as "[O A]".
-      iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
-      wp_apply (push_spec_helper with "[Hrd2 ι O]") as "%rd2' [#Hrd2' O]".
-      { iFrame "#". iFrame. rewrite /isElement triple_unfold.
-        iExists p2'', ld2, md2, op2'', oLd2, oMd2, kp2'', kMd2.
-        inversion cfg2.
-        iSplitR. iPureIntro.
-        destruct (length oLd2); [apply left_leaning | apply has_child];
-          auto with find_in_list arith.
-        iSplitR. done.
-        by iFrame "#".
-      }
-      wp_pures.
-      wp_bind (if: _ then _ else _)%E.
-      wp_apply (bsize_better_spec with "Hp2'") as "_".
-      wp_pures.
-      destruct (bool_decide (kp2' = 0)) eqn:?.
-      * apply bool_decide_eq_true_1 in Heqb as Heqp2.
+      destruct (bool_decide (ks1'' = 0)) eqn:?.
+      - apply bool_decide_eq_true_1 in Heqb as Heqs1.
         apply bool_decide_code_true in Heqb as ->.
         wp_pures.
-        wp_apply (ssref_alloc π (fiveTuple π 0 (o1 ++ o2)) with "[τ]") as (ℓ') "Hℓ'".
-          { iExists pr1, ld1', md', rd2', sf2,
-            oPr1, (oLd1 ++ oMd1 ++ oRd1 ++ os1'), (oX ++ oY), ((op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            iSplitL "τ". iApply three_time_enough. iDestruct (split_time 3 with "τ") as "[ι _]"; [lia | auto].
-            iFrame "#".
-            rewrite Heqs1 Heqp2.
-            iDestruct (empty_buffer_is_empty with "Hs1''") as "->".
-            iDestruct (empty_buffer_is_empty with "Hp2'") as "->".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
-        iDestruct ("A" with "O") as "O".
+        rewrite Heqs1.
+        iDestruct (empty_buffer_is_empty with "Hs1''") as "->".
+        rewrite !app_nil_r.
         iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
-      * apply bool_decide_eq_false_1 in Heqb as Heqp2.
+        done.
+      - apply bool_decide_eq_false_1 in Heqb as Heqs1.
         apply bool_decide_code_false in Heqb as ->.
         wp_pures.
-        iDestruct ("A" with "O") as "O".
         iDestruct (na_own_acc _ _ _ (next_stage 0) with "O") as "[O A]".
-        iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
-        wp_apply (push_spec_helper with "[Hrd2' ι O]") as "%rd2'' [#Hrd2'' O]".
-          { iFrame "#". iFrame.
-            rewrite /isElement triple_unfold.
-            iExists p2', empty, empty_buffer, op2', [], [], kp2', 0.
-            iSplitR. iPureIntro. constructor; invert_all_in.
-            iSplitR. done.
-            iFrame "#".
-            iSplitR. isEmptyDeque.
-            iSplitR. rewrite /bufferPre. iSplitL. by iApply empty_is_buffer. done.
-            done.
-          }
-        wp_pures.
-        wp_apply (ssref_alloc π (fiveTuple π 0 (o1 ++ o2)) with "[τ]") as (ℓ') "Hℓ'".
-          { iExists pr1, ld1', md', rd2'', sf2,
-            oPr1, (oLd1 ++ oMd1 ++ oRd1 ++ os1'), (oX ++ oY), (op2' ++ (op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            iSplitL "τ". iApply three_time_enough. iDestruct (split_time 3 with "τ") as "[ι _]"; [lia | auto].
-            rewrite Heqs1 !app_nil_r.
-            iDestruct (empty_buffer_is_empty with "Hs1''") as "->".
-            iFrame "#".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
-        iDestruct ("A" with "O") as "O".
-        iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
-    + apply bool_decide_eq_false_1 in Heqb as Heqs1.
-      apply bool_decide_code_false in Heqb as ->.
-      wp_pures.
-      iDestruct ("A" with "O") as "O".
-        iDestruct (na_own_acc _ _ _ (next_stage 0) with "O") as "[O A]".
-        iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
         wp_apply (inject_spec_helper with "[Hld1' ι O]") as "%ld1'' [#Hld1'' O]".
           { iFrame "#". iFrame.
             rewrite /isElement triple_unfold.
@@ -1012,57 +940,48 @@ Section proofs.
             iSplitR. rewrite /bufferPre. iSplitL. by iApply empty_is_buffer. done.
             done.
           }
-      wp_pures.
-      wp_apply (partition_buffer_right_better_spec with "[Hpr2']") as "%p2' %p2'' %op2' %op2'' %kp2' %kp2'' (#Hp2' & #Hp2'' & (%Hp21' & %Hp2'' & %Hop2eq))".
-        { iFrame. iPureIntro. invert_all_in. }
-      wp_pures.
-      iDestruct ("A" with "O") as "O".
-      iDestruct (na_own_acc _ _ _ (next_stage 0) with "O") as "[O A]".
-      iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
-      wp_apply (push_spec_helper with "[Hrd2 ι O]") as "%rd2' [#Hrd2' O]".
-      { iFrame "#". iFrame. rewrite /isElement triple_unfold.
-        iExists p2'', ld2, md2, op2'', oLd2, oMd2, kp2'', kMd2.
-        inversion cfg2.
-        iSplitR. iPureIntro.
-        destruct (length oLd2); [apply left_leaning | apply has_child];
-          auto with find_in_list arith.
-        iSplitR. done.
-        by iFrame "#".
-      }
-      wp_pures.
-      wp_bind (if: _ then _ else _)%E.
-      wp_apply (bsize_better_spec with "Hp2'") as "_".
-      wp_pures.
-      rewrite !app_nil_r.
-      destruct (bool_decide (kp2' = 0)) eqn:?.
-      * apply bool_decide_eq_true_1 in Heqb as Heqp2.
-        apply bool_decide_code_true in Heqb as ->.
-        wp_pures.
-        wp_apply (ssref_alloc π (fiveTuple _ 0 (o1 ++ o2)) with "[τ]") as (ℓ') "Hℓ'".
-          { iExists pr1, ld1'', md', rd2', sf2,
-            oPr1, ((oLd1 ++ oMd1 ++ oRd1 ++ os1') ++ os1''), (oX ++ oY), ((op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            iSplitL "τ". iApply three_time_enough. iDestruct (split_time 3 with "τ") as "[ι _]"; [lia | auto].
-            iFrame "#".
-            rewrite Heqp2.
-            iDestruct (empty_buffer_is_empty with "Hp2'") as "->".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
         iDestruct ("A" with "O") as "O".
         iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
-      * apply bool_decide_eq_false_1 in Heqb as Heqp2.
+        rewrite !app_nil_r -!app_assoc //.
+    }
+    iModIntro. wp_pures.
+    wp_apply (partition_buffer_right_better_spec with "[Hpr2']") as "%p2' %p2'' %op2' %op2'' %kp2' %kp2'' (#Hp2' & #Hp2'' & (%Hp21' & %Hp2'' & %Hop2eq))".
+      { iFrame. iPureIntro. invert_all_in. }
+    wp_pures.
+    iDestruct (na_own_acc _ _ _ (next_stage 0) with "O") as "[O A]".
+    iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
+    wp_apply (push_spec_helper with "[Hrd2 ι O]") as "%rd2' [#Hrd2' O]".
+    { iFrame "#". iFrame. rewrite /isElement triple_unfold.
+      iExists p2'', ld2, md2, op2'', oLd2, oMd2, kp2'', kMd2.
+      inversion cfg2.
+      iSplitR. iPureIntro.
+      destruct (length oLd2); [apply left_leaning | apply has_child];
+        auto with find_in_list arith.
+      iSplitR. done.
+      by iFrame "#".
+    }
+    iDestruct ("A" with "O") as "O".
+    wp_pures.
+    wp_bind (if: _ then _ else _)%E.
+    iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
+    wp_apply (wp_strong_mono _ _ _ _ _
+      (λ v, isDeque _ 1 (op2' ++ op2'' ++ oLd2 ++ oMd2 ++ oRd2) v ∗ Token π 0)%I
+      with "[ι O]") as "%rd2'' [#rd2'' O]"; try done.
+    {
+      wp_apply (bsize_better_spec with "Hp2'") as "_".
+      wp_pures.
+      destruct (bool_decide (kp2' = 0)) eqn:?.
+      + apply bool_decide_eq_true_1 in Heqb as Heqp2.
+        apply bool_decide_code_true in Heqb as ->.
+        wp_pures.
+        iFrame.
+        rewrite Heqp2.
+        iDestruct (empty_buffer_is_empty with "Hp2'") as "->".
+        rewrite !app_nil_l -!app_assoc //.
+      + apply bool_decide_eq_false_1 in Heqb as Heqp2.
         apply bool_decide_code_false in Heqb as ->.
         wp_pures.
-        iDestruct ("A" with "O") as "O".
         iDestruct (na_own_acc _ _ _ (next_stage 0) with "O") as "[O A]".
-        iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
         wp_apply (push_spec_helper with "[Hrd2' ι O]") as "%rd2'' [#Hrd2'' O]".
           { iFrame "#". iFrame.
             rewrite /isElement triple_unfold.
@@ -1074,25 +993,27 @@ Section proofs.
             iSplitR. rewrite /bufferPre. iSplitL. by iApply empty_is_buffer. done.
             done.
           }
-        wp_pures.
-        wp_apply (ssref_alloc π (fiveTuple _ 0 (o1 ++ o2)) with "[τ]") as (ℓ') "Hℓ'".
-          { iExists pr1, ld1'', md', rd2'', sf2,
-            oPr1, ((oLd1 ++ oMd1 ++ oRd1 ++ os1')++os1''), (oX ++ oY), (op2' ++ (op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            iSplitL "τ". iApply three_time_enough. iDestruct (split_time 3 with "τ") as "[ι _]"; [lia | auto].
-            rewrite !app_nil_r.
-            iFrame "#".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
         iDestruct ("A" with "O") as "O".
         iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
+        rewrite !app_nil_r -!app_assoc //.
+    }
+    iModIntro. wp_pures.
+    wp_apply (ssref_alloc π (fiveTuple _ 0 (o1 ++ o2)) with "[τ]") as (ℓ') "Hℓ'".
+    { iExists pr1, ld1'', md', rd2'', sf2,
+      oPr1, (oLd1 ++ oMd1 ++ oRd1 ++ os1'++os1''), (oX ++ oY), (op2' ++ op2'' ++ oLd2 ++ oMd2 ++ oRd2), oSf2,
+      kPr1, 2, kSf2.
+      iSplitR. done.
+      iSplitR. iPureIntro. constructor; auto with find_in_list.
+      iSplitL "τ". iApply three_time_enough. iDestruct (split_time 3 with "τ") as "[ι _]"; [lia | auto].
+      iFrame "#".
+      iPureIntro.
+      rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
+      aac_reflexivity.
+    }
+    wp_pures.
+    iApply "Hψ".
+    iFrame.
+    ℓisDeque ℓ'. iExact "Hℓ'".
   Qed.
 
 End proofs.

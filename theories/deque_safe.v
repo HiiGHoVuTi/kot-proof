@@ -803,7 +803,7 @@ Section proofs.
       { iFrame. iPureIntro. invert_all_in. }
     wp_pures.
     rewrite !app_nil_r.
-    wp_apply (inject_spec_helper with "[Hld1]") as "%ld1' #Hld1'".
+    wp_apply (inject_spec_helper) as "%ld1' #Hld1'".
       { iFrame "#". iFrame. rewrite /isElement triple_unfold.
         iExists md1, rd1, s1', oMd1, oRd1, os1', kMd1, ks1'.
         inversion cfg1; [ rewrite -H3 in H14; lia |].
@@ -815,87 +815,24 @@ Section proofs.
       }
     wp_pures.
     wp_bind (if: _ then _ else _)%E.
-    wp_apply (bsize_better_spec with "Hs1''") as "_".
-    wp_pures.
-    destruct (bool_decide (ks1'' = 0)) eqn:?.
-    + apply bool_decide_eq_true_1 in Heqb as Heqs1.
-      apply bool_decide_code_true in Heqb as ->.
+    wp_apply (wp_strong_mono _ _ _ _ _
+      (isDeque 1 (oLd1 ++ oMd1 ++ oRd1 ++ os1' ++ os1''))) as "%ld1'' #Hd1''"; try done.
+    {
+     wp_apply (bsize_better_spec with "Hs1''") as "_".
       wp_pures.
-      wp_apply (partition_buffer_right_better_spec with "[Hpr2']") as "%p2' %p2'' %op2' %op2'' %kp2' %kp2'' (#Hp2' & #Hp2'' & (%Hp21' & %Hp2'' & %Hop2eq))".
-        { iFrame. iPureIntro. invert_all_in. }
-      wp_pures.
-      wp_apply (push_spec_helper with "[Hrd2]") as "%rd2' #Hrd2'".
-      { iFrame "#". iFrame. rewrite /isElement triple_unfold.
-        iExists p2'', ld2, md2, op2'', oLd2, oMd2, kp2'', kMd2.
-        inversion cfg2.
-        iSplitR. iPureIntro.
-        destruct (length oLd2); [apply left_leaning | apply has_child];
-          auto with find_in_list arith.
-        iSplitR. done.
-        by iFrame "#".
-      }
-      wp_pures.
-      wp_bind (if: _ then _ else _)%E.
-      wp_apply (bsize_better_spec with "Hp2'") as "_".
-      wp_pures.
-      destruct (bool_decide (kp2' = 0)) eqn:?.
-      * apply bool_decide_eq_true_1 in Heqb as Heqp2.
+      destruct (bool_decide (ks1'' = 0)) eqn:?.
+      - apply bool_decide_eq_true_1 in Heqb as Heqs1.
         apply bool_decide_code_true in Heqb as ->.
         wp_pures.
-        wp_apply (csref_alloc (fiveTuple 0 (o1 ++ o2))) as (ℓ') "Hℓ'".
-          { iExists pr1, ld1', md', rd2', sf2,
-            oPr1, (oLd1 ++ oMd1 ++ oRd1 ++ os1'), (oX ++ oY), ((op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            iFrame "#".
-            rewrite Heqs1 Heqp2.
-            iDestruct (empty_buffer_is_empty with "Hs1''") as "->".
-            iDestruct (empty_buffer_is_empty with "Hp2'") as "->".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
+        rewrite Heqs1.
+        iDestruct (empty_buffer_is_empty with "Hs1''") as "->".
+        rewrite !app_nil_r.
         iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
-      * apply bool_decide_eq_false_1 in Heqb as Heqp2.
+        done.
+      - apply bool_decide_eq_false_1 in Heqb as Heqs1.
         apply bool_decide_code_false in Heqb as ->.
         wp_pures.
-        wp_apply (push_spec_helper with "[Hrd2']") as "%rd2'' #Hrd2''".
-          { iFrame "#". iFrame.
-            rewrite /isElement triple_unfold.
-            iExists p2', empty, empty_buffer, op2', [], [], kp2', 0.
-            iSplitR. iPureIntro. constructor; invert_all_in.
-            iSplitR. done.
-            iFrame "#".
-            iSplitR. isEmptyDeque.
-            iSplitR. rewrite /bufferPre. iSplitL. by iApply empty_is_buffer. done.
-            done.
-          }
-        wp_pures.
-        wp_apply (csref_alloc (fiveTuple 0 (o1 ++ o2))) as (ℓ') "Hℓ'".
-          { iExists pr1, ld1', md', rd2'', sf2,
-            oPr1, (oLd1 ++ oMd1 ++ oRd1 ++ os1'), (oX ++ oY), (op2' ++ (op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            rewrite Heqs1 !app_nil_r.
-            iDestruct (empty_buffer_is_empty with "Hs1''") as "->".
-            iFrame "#".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
-        iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
-    + apply bool_decide_eq_false_1 in Heqb as Heqs1.
-      apply bool_decide_code_false in Heqb as ->.
-      wp_pures.
-        wp_apply (inject_spec_helper with "[Hld1']") as "%ld1'' #Hld1''".
+        wp_apply (inject_spec_helper) as "%ld1'' #Hld1''".
           { iFrame "#". iFrame.
             rewrite /isElement triple_unfold.
             iExists s1'', empty, empty_buffer, os1'', [], [], ks1'', 0.
@@ -906,50 +843,42 @@ Section proofs.
             iSplitR. rewrite /bufferPre. iSplitL. by iApply empty_is_buffer. done.
             done.
           }
-      wp_pures.
-      wp_apply (partition_buffer_right_better_spec with "[Hpr2']") as "%p2' %p2'' %op2' %op2'' %kp2' %kp2'' (#Hp2' & #Hp2'' & (%Hp21' & %Hp2'' & %Hop2eq))".
-        { iFrame. iPureIntro. invert_all_in. }
-      wp_pures.
-      wp_apply (push_spec_helper with "[Hrd2]") as "%rd2' #Hrd2'".
-      { iFrame "#". iFrame. rewrite /isElement triple_unfold.
-        iExists p2'', ld2, md2, op2'', oLd2, oMd2, kp2'', kMd2.
-        inversion cfg2.
-        iSplitR. iPureIntro.
-        destruct (length oLd2); [apply left_leaning | apply has_child];
-          auto with find_in_list arith.
-        iSplitR. done.
-        by iFrame "#".
-      }
-      wp_pures.
-      wp_bind (if: _ then _ else _)%E.
+        iFrame.
+        rewrite !app_nil_r -!app_assoc //.
+    }
+    iModIntro. wp_pures.
+    wp_apply (partition_buffer_right_better_spec with "[Hpr2']") as "%p2' %p2'' %op2' %op2'' %kp2' %kp2'' (#Hp2' & #Hp2'' & (%Hp21' & %Hp2'' & %Hop2eq))".
+      { iFrame. iPureIntro. invert_all_in. }
+    wp_pures.
+    wp_apply (push_spec_helper) as "%rd2' #Hrd2'".
+    { iFrame "#". iFrame. rewrite /isElement triple_unfold.
+      iExists p2'', ld2, md2, op2'', oLd2, oMd2, kp2'', kMd2.
+      inversion cfg2.
+      iSplitR. iPureIntro.
+      destruct (length oLd2); [apply left_leaning | apply has_child];
+        auto with find_in_list arith.
+      iSplitR. done.
+      by iFrame "#".
+    }
+    wp_pures.
+    wp_bind (if: _ then _ else _)%E.
+    wp_apply (wp_strong_mono _ _ _ _ _
+      (isDeque 1 (op2' ++ op2'' ++ oLd2 ++ oMd2 ++ oRd2))) as "%rd2'' #rd2''"; try done.
+    {
       wp_apply (bsize_better_spec with "Hp2'") as "_".
       wp_pures.
-      rewrite !app_nil_r.
       destruct (bool_decide (kp2' = 0)) eqn:?.
-      * apply bool_decide_eq_true_1 in Heqb as Heqp2.
+      + apply bool_decide_eq_true_1 in Heqb as Heqp2.
         apply bool_decide_code_true in Heqb as ->.
         wp_pures.
-        wp_apply (csref_alloc (fiveTuple 0 (o1 ++ o2))) as (ℓ') "Hℓ'".
-          { iExists pr1, ld1'', md', rd2', sf2,
-            oPr1, ((oLd1 ++ oMd1 ++ oRd1 ++ os1') ++ os1''), (oX ++ oY), ((op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            iFrame "#".
-            rewrite Heqp2.
-            iDestruct (empty_buffer_is_empty with "Hp2'") as "->".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
         iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
-      * apply bool_decide_eq_false_1 in Heqb as Heqp2.
+        rewrite Heqp2.
+        iDestruct (empty_buffer_is_empty with "Hp2'") as "->".
+        rewrite !app_nil_l -!app_assoc //.
+      + apply bool_decide_eq_false_1 in Heqb as Heqp2.
         apply bool_decide_code_false in Heqb as ->.
         wp_pures.
-        wp_apply (push_spec_helper with "[Hrd2']") as "%rd2'' #Hrd2''".
+        wp_apply (push_spec_helper) as "%rd2'' #Hrd2''".
           { iFrame "#". iFrame.
             rewrite /isElement triple_unfold.
             iExists p2', empty, empty_buffer, op2', [], [], kp2', 0.
@@ -960,23 +889,25 @@ Section proofs.
             iSplitR. rewrite /bufferPre. iSplitL. by iApply empty_is_buffer. done.
             done.
           }
-        wp_pures.
-        wp_apply (csref_alloc (fiveTuple 0 (o1 ++ o2))) as (ℓ') "Hℓ'".
-          { iExists pr1, ld1'', md', rd2'', sf2,
-            oPr1, ((oLd1 ++ oMd1 ++ oRd1 ++ os1')++os1''), (oX ++ oY), (op2' ++ (op2'' ++ oLd2 ++ oMd2) ++ oRd2), oSf2,
-            kPr1, 2, kSf2.
-            iSplitR. done.
-            iSplitR. iPureIntro. constructor; auto with find_in_list.
-            rewrite !app_nil_r.
-            iFrame "#".
-            iPureIntro.
-            rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
-            aac_reflexivity.
-          }
-        wp_pures.
-        iApply "Hψ".
         iFrame.
-        ℓisDeque ℓ'. iExact "Hℓ'".
+        rewrite !app_nil_r -!app_assoc //.
+    }
+    iModIntro. wp_pures.
+    wp_apply (csref_alloc (fiveTuple 0 (o1 ++ o2))) as (ℓ') "Hℓ'".
+    { iExists pr1, ld1'', md', rd2'', sf2,
+      oPr1, (oLd1 ++ oMd1 ++ oRd1 ++ os1'++os1''), (oX ++ oY), (op2' ++ op2'' ++ oLd2 ++ oMd2 ++ oRd2), oSf2,
+      kPr1, 2, kSf2.
+      iSplitR. done.
+      iSplitR. iPureIntro. constructor; auto with find_in_list.
+      iFrame "#".
+      iPureIntro.
+      rewrite Ho1 Ho2 -Hos1eq -Hop2eq.
+      aac_reflexivity.
+    }
+    wp_pures.
+    iApply "Hψ".
+    iFrame.
+    ℓisDeque ℓ'. iExact "Hℓ'".
   Qed.
 
 End proofs.
