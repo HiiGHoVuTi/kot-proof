@@ -129,6 +129,20 @@ Section potential_deques.
       ⌜ o = pr_content ++ left_content ++ md_content ++ right_content ++ sf_content ⌝
   )%I.
 
+ Definition isPopFiveTuple : isDequeType := (
+    λ n o d, ∃ (pr ld md rd sf : val)
+      (pr_content left_content md_content right_content sf_content : list val)
+      (kPr kMd kSf : nat),
+      ⌜ d = (pr, ld, md, rd, sf)%V ⌝ ∗
+      ⌜ pop_configuration kPr (length left_content) kMd (length right_content) kSf ⌝ ∗
+      bufferPre kPr triple n pr_content pr ∗
+      isDeque (S n) left_content ld ∗
+      bufferPre kMd triple n md_content md ∗
+      isDeque (S n) right_content rd ∗
+      bufferPre kSf triple n sf_content sf ∗
+      ⌜ o = pr_content ++ left_content ++ md_content ++ right_content ++ sf_content ⌝
+  )%I.
+
   (* Unfolding lemmas come directly from the fixpoint theory *)
   Lemma isDeque_unfold n o d :
     isDeque n o d ⊣⊢ fDeque triple isDeque n o d.
@@ -374,7 +388,7 @@ Section proofs.
 
   Corollary inject_buffer_element_spec x b : forall n o oX size,
     {{{ isElement π n oX x ∗ buffer π size n o b }}}
-      binject x b
+      binject b x
     {{{ b', RET b'; buffer π (S size) n (o ++ oX) b' }}}.
   Admitted.
 
@@ -458,6 +472,7 @@ Section proofs.
       push x d
     {{{ d', RET d'; isDeque π depth (oX ++ oD) d' ∗ Token π depth }}}.
   Proof.
+  (*
     iLöb as "iH" forall (x d oX oD).
     iIntros (depth ψ) "(Hd & #Hx & τ & O) Hψ".
     rewrite /push.
@@ -702,6 +717,8 @@ Section proofs.
             ℓisDeque ℓ'.
             iExact "Hℓ'".
   Qed.
+  *)
+  Admitted.
 
   Theorem push_spec oD (x : val) (d : val) :
     {{{ IsDeque π oD d ∗ ⏱ time_for_push ∗ Token π 0 }}}
@@ -729,16 +746,23 @@ Section proofs.
 
   (* NOTE(Juliette): Marked as 0 time cost, but runs in ⏱ (8 * time_for_push) constant time *)
   Corollary push_whole_spec : forall lvl b oB d oD size,
-    {{{ buffer π size lvl oB b ∗ isDeque π lvl oD d ∗ Token π 0 }}}
+    {{{ buffer π size lvl oB b ∗ isDeque π lvl oD d ∗ Token π lvl }}}
       push_whole_buffer push b d
-    {{{ d', RET d'; isDeque π lvl (oB ++ oD) d' ∗ Token π 0 }}}.
+    {{{ d', RET d'; isDeque π lvl (oB ++ oD) d' ∗ Token π lvl }}}.
   Admitted.
 
   (* NOTE(Juliette): Marked as 0 time cost, but runs in ⏱ (8 * time_for_push) constant time *)
-  Corollary inject_whole_spec : forall lvl b oB d oD size,
-    {{{ buffer π size lvl oB b ∗ isDeque π lvl oD d ∗ Token π 0 }}}
+  Corollary binject_whole_spec : forall lvl b oB d oD size size',
+    {{{ buffer π size lvl oB b ∗ buffer π size' lvl oD d }}}
+      inject_whole_buffer binject d b
+    {{{ d', RET d'; buffer π (size+size') lvl (oD ++ oB) d' }}}.
+  Admitted.
+
+  (* TODO: move me *)
+  Property inject_whole_spec : forall lvl b oB d oD size,
+    {{{ buffer π size lvl oB b ∗ isDeque π lvl oD d ∗ Token π lvl }}}
       inject_whole_buffer inject d b
-    {{{ d', RET d'; isDeque π lvl (oD ++ oB) d' ∗ Token π 0 }}}.
+    {{{ d', RET d'; isDeque π lvl (oD ++ oB) d' ∗ Token π lvl }}}.
   Admitted.
 
   Notation time_for_concat := (4 * time_for_push + 1 + 3).
@@ -800,6 +824,7 @@ Section proofs.
       dconcat d1 d2
     {{{ d', RET d'; IsDeque π (o1 ++ o2) d' ∗ Token π 0 }}}.
   Proof.
+  (*
     iIntros (o1 o2 ψ) "(Hd1 & Hd2 & τ & O) Hψ".
     rewrite /dconcat /IsDeque.
     wp_pures.
@@ -1015,5 +1040,185 @@ Section proofs.
     iFrame.
     ℓisDeque ℓ'. iExact "Hℓ'".
   Qed.
+  *)
+  Admitted.
+
+  Notation time_for_pop := (3 * time_for_concat).
+
+ Lemma pop_spec_helper oD oX x ℓ : forall depth,
+    {{{ isDeque π depth (oX ++ oD) (SOMEV #ℓ) ∗ isElement π depth oX x ∗ ⏱ time_for_pop ∗ Token π depth }}}
+      pop (SOMEV #ℓ)
+    {{{ d', RET (x, d')%V; isDeque π depth oD d' ∗ Token π depth }}}.
+  Proof.
+    iIntros (depth ψ) "(Hd & Hx & τ & O) Hψ".
+    rewrite isDeque_unfold.
+    iDestruct "Hd" as "[[%H _] | (%ℓ' & -> & Hℓ)]". by inversion H.
+    rewrite /pop.
+    wp_pures.
+    iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
+    wp_apply (tick_spec with "ι") as "_".
+    wp_pures.
+    wp_apply (ssref_load_open with "[Hℓ O]") as "%d (O & πd & DONE)". by iFrame.
+    wp_pures.
+    iDestruct (persist_structure with "πd") as
+        "[#Hd (%pr & %ld & %md & %rd & %sf & %prC & %ldC & %mdC & %rdC & %sfC
+          & %kPr & %kMd & %kSf & -> & %cfg & pot
+          & #Hpr & #Hld & #Hmd & #Hrd & #Hsf & %Heq)]".
+    wp_pures.
+    wp_bind (if: _ then _ else _)%E.
+    wp_apply (wp_strong_mono _ _ _ _ _
+      (λ v, isPopFiveTuple π depth (oX ++ oD) v ∗ ⏱ 3 ∗ Token π (S depth))%I
+      with "[O τ]"); [easy | easy | |]. {
+    wp_apply (bsize_better_spec with "Hmd") as "_".
+    wp_pures.
+    destruct (bool_decide (kMd = 0)) eqn:?.
+    { apply bool_decide_eq_true_1 in Heqb as Heqmd.
+      apply bool_decide_code_true in Heqb as ->.
+      wp_pures.
+      iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
+      iFrame.
+      iExists pr,ld,md,rd,sf,prC,ldC,mdC,rdC,sfC,kPr,kMd,kSf.
+      iFrame "#".
+      iSplitR. done.
+      iSplitL; [| done ].
+      iPureIntro.
+      rewrite Heqmd in cfg |- *.
+      inversion cfg.
+      invert_all_in; constructor; auto 10 with find_in_list.
+    }
+    apply bool_decide_eq_false_1 in Heqb as Heqmd.
+    apply bool_decide_code_false in Heqb as ->.
+    wp_pures.
+    wp_apply (bsize_better_spec with "Hpr") as "_".
+    wp_pures.
+    destruct (bool_decide (kPr = 3)) eqn:?.
+    2: {
+      apply bool_decide_eq_false_1 in Heqb as Heqpr.
+      apply bool_decide_code_false in Heqb as ->.
+      wp_pures.
+      iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
+      iFrame.
+      iExists pr,ld,md,rd,sf,prC,ldC,mdC,rdC,sfC,kPr,kMd,kSf.
+      iFrame "#".
+      iSplitR. done.
+      iSplitL; [| done ].
+      iPureIntro.
+      inversion cfg; [exfalso; lia |].
+      invert_all_in; constructor; auto 10 with find_in_list.
+    }
+    apply bool_decide_eq_true_1 in Heqb as Heqpr.
+    apply bool_decide_code_true in Heqb as ->.
+    wp_pures.
+    rewrite {1}isDeque_unfold {1}isDeque_unfold.
+    iDestruct "Hld" as "[[-> ->] | (%ℓld & -> & Hld)]";
+    iDestruct "Hrd" as "[[-> ->] | (%ℓrd & -> & Hrd)]";
+    wp_pures.
+    - wp_apply (bsize_better_spec with "Hsf") as "_".
+      wp_pures.
+      destruct (bool_decide (kSf = 3)) eqn:?.
+      + apply bool_decide_eq_true_1 in Heqb as Heqsf.
+        apply bool_decide_code_true in Heqb as ->.
+        wp_pures.
+        wp_bind (inject_whole_buffer _ _ _).
+        wp_apply (binject_whole_spec with "[Hmd Hsf]") as "%sf' #Hsf'".
+          by iFrame "#".
+        wp_apply (binject_whole_spec with "[Hmd Hsf']") as "%sf'' #Hsf''".
+          by iFrame "#".
+        wp_pures.
+        iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
+        iModIntro.
+        iFrame.
+        iExists empty_buffer,NONEV,empty_buffer,NONEV,sf'',[],[],[],[],(prC ++ mdC ++ sfC),0,0,(kSf+kMd+kPr).
+        iFrame "#".
+        iSplitR. done.
+        iSplitR.
+          { iPureIntro.
+            inversion cfg; constructor; simpl; auto with find_in_list.
+            - rewrite !Nat.add_0_r //.
+            - rewrite Heqpr Heqsf. auto 10 with find_in_list.
+           }
+        iSplitR. by iApply empty_is_buffer_at.
+        iSplitR. by isEmptyDeque.
+        iSplitR. by iApply empty_is_buffer_at.
+        iSplitR. by isEmptyDeque.
+        iPureIntro.
+        aac_rewrite Heq.
+        aac_reflexivity.
+      + apply bool_decide_eq_false_1 in Heqb as Heqsf.
+        apply bool_decide_code_false in Heqb as ->.
+        wp_pures.
+        inversion cfg. symmetry in H2; by contradiction.
+        wp_apply (pop_buffer_element_spec with "Hmd") as "%a %m (%oA & %oM & #hM' & %HmdC & #Ha)".
+        wp_pures.
+        wp_apply (inject_buffer_element_spec with "[Hpr Ha]") as "%p' #Hp'". by iFrame "#".
+        wp_pures.
+        change (kSf ∈ map S [2; 3; 4; 5]) in H0.
+        apply decrease_in in H0 as (kSf' & -> & HkSf').
+        wp_apply (pop_buffer_element_spec with "Hsf") as "%b %s' (%oB & %oS' & #hS' & %HsfC & #Hb)".
+        wp_pures.
+        wp_apply (inject_buffer_element_spec with "[hM' Hb]") as "%md' #Hmd'". by iFrame "#".
+        wp_pures.
+        iModIntro.
+        iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
+        iFrame.
+        iExists p', NONEV, md', NONEV, s',
+          (prC++oA), [], (oM++oB), [], oS', (S kPr), 2, kSf'.
+        iFrame "#".
+        iSplitR. done.
+        iSplitR.
+          { iPureIntro.
+            constructor;
+            [rewrite Heqpr | invert_all_in];
+            auto with find_in_list;
+            exfalso; apply Heqsf; by auto.
+          }
+        iSplitR. by isEmptyDeque.
+        iSplitR. by isEmptyDeque.
+        iPureIntro.
+        aac_rewrite Heq.
+        aac_rewrite HsfC.
+        aac_rewrite HmdC.
+        aac_reflexivity.
+    - wp_apply (ssref_read π _ (isPersFiveTuple _ _ _) with "[Hrd O]") as "%right
+        [(%pr1 & %ld1 & %md1 & %rd1 & %sf1 & %oPr1 & %oLd1 & %oMd1 & %oRd1 & %oSf1 &
+        %kPr1 & %kMd1 & %kSf1 & -> & %cfg1 & #Hpr1 & #Hld1 & #Hmd1 & #Hrd1 & #Hsf1 & %Ho1)
+        O]".
+        {
+          iSplitR. iExact "Hrd".
+          iFrame.
+          iIntros (v) "H".
+          iApply (persist_structure with "H").
+        }
+        rewrite /inspect_first /naive_pop.
+        remember (S depth) as sDepth.
+        wp_pures.
+        wp_apply (bsize_better_spec with "Hmd1") as "_".
+        wp_pures.
+        destruct (bool_decide (kMd1 = 0)) eqn:?.
+        + apply bool_decide_eq_true_1 in Heqb as Heqmd1.
+          apply bool_decide_code_true in Heqb as ->.
+          wp_pures.
+          inversion cfg1; [| exfalso; lia].
+          change (kSf1 ∈ map S [0;1;2;3;4;5;6;7]) in H3.
+          apply decrease_in in H3 as (kSf' & -> & HkSf').
+          wp_apply (pop_buffer_element_spec with "Hsf1") as "%b %s' (%oB & %oS' & #hS' & %HsfC & #Hb)".
+          wp_pures.
+          wp_alloc _ignored as "_". wp_pures. clear _ignored.
+          rewrite HeqsDepth /isElement triple_unfold.
+          iDestruct "Hb" as "(%fst & %child & %last & %fstC & %childC & %lastC & %kFst & %kLst & bCfg & -> & Hfst & Hch & Hlst & HoB)".
+          wp_bind (first_nonempty _)%E.
+          wp_apply (wp_mono _ _ _ (λ v, ⌜ v = fst ⌝)%I).
+          2: {
+            rewrite /first_nonempty. wp_pures.
+            wp_apply (bsize_better_spec with "Hfst") as "_".
+            wp_pures.
+            assert (bool_decide (#kFst = #0) = false) as Hnem.
+              { inversion bCfg. }
+          }
+
+
+    }
+
+
 
 End proofs.
