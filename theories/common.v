@@ -1,5 +1,6 @@
 
 From iris.heap_lang Require Import lang proofmode notation.
+Require Import List.
 From Deque Require Import tick.
 
 (* Section notations *)
@@ -106,8 +107,8 @@ Section assumptions.
 
 End assumptions.
 
-Hint Resolve elem_of_list_here : find_in_list.
-Hint Resolve elem_of_list_further : find_in_list.
+Hint Resolve list_elem_of_here : find_in_list.
+Hint Resolve list_elem_of_further : find_in_list.
 
 Ltac find := eauto with find_in_list.
 
@@ -333,6 +334,7 @@ Section algorithms.
           let: "right" := !"right" in
           let: "t" := inspect_first "right" in
           let:2 ("t", "r") :=
+            let:3 ("first", "child", "last") := "t" in
             let: "fn_result" := first_nonempty "t" in
             match: "fn_result" with
               SOME "b" =>
