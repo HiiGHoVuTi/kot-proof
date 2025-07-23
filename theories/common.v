@@ -107,8 +107,13 @@ Section assumptions.
 
 End assumptions.
 
-Hint Resolve list_elem_of_here : find_in_list.
-Hint Resolve list_elem_of_further : find_in_list.
+Hint Resolve elem_of_list_here : find_in_list.
+Hint Resolve elem_of_list_further : find_in_list.
+Lemma elem_of_list_app A (x : A) L M : x ∈ L ∨ x ∈ M -> x ∈ (L ++ M).
+Proof.
+  induction L; intro H; inversion H; simpl; auto with find_in_list; inversion H0; auto with find_in_list.
+Qed.
+Hint Resolve elem_of_list_app : find_in_list.
 
 Ltac find := eauto with find_in_list.
 
@@ -285,7 +290,7 @@ Section algorithms.
     if: (bsize "middle" = #0%nat) || not (bsize "prefix" = #3%nat) then "d" else (
       (* assert: bsize "prefix" = #3%nat *)
       match: "left" with
-        SOME "left" =>
+        SOME "leftp" =>
         let: "left" := !"left" in
         let: "t" := inspect_first "left" in
         let:2 ("t", "l") :=
@@ -296,7 +301,7 @@ Section algorithms.
             if: bsize "b" = #3%nat || ("child" = NONE) then
               naive_pop "left"
             else
-              "pop" (SOME (ref "left"))
+              "pop" "leftp"
           | NONE => "UNREACHABLE"
           end in
         let:3 ("x", "d'", "y") := "t" in
@@ -330,8 +335,8 @@ Section algorithms.
           "UNREACHABLE"
       | NONE =>
         match: "right" with
-          SOME "right" =>
-          let: "right" := !"right" in
+          SOME "rightp" =>
+          let: "right" := !"rightp" in
           let: "t" := inspect_first "right" in
           let:2 ("t", "r") :=
             let:3 ("first", "child", "last") := "t" in
@@ -341,7 +346,7 @@ Section algorithms.
               if: (bsize "b" = #3%nat) || not ("child" = NONE) then
                 naive_pop "right"
               else
-                "pop" (SOME (ref "right"))
+                "pop" "rightp"
             | NONE => "UNREACHABLE"
             end in
           let:3 ("x", "d'", "y") := "t" in
