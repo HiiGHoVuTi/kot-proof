@@ -107,11 +107,15 @@ Section assumptions.
 
 End assumptions.
 
-(* TODO unused?
-Hint Constructors list_elem_of : find_in_list.
-Ltac find := eauto with find_in_list.
- *)
 Ltac list_elem_of := solve [ repeat first [ assumption | constructor ]].
+Lemma elem_of_list_app A (x : A) L M : x ∈ L ∨ x ∈ M -> x ∈ (L ++ M).
+Proof.
+  induction L; intros H; inversion H; simpl; try list_elem_of.
+  - inversion H0.
+  - inversion H0; constructor; auto.
+  - constructor. auto.
+Qed.
+Hint Resolve elem_of_list_app : find_in_list.
 
 Section configurations.
   (* This section describes buffer configurations and potentials *)
@@ -286,7 +290,7 @@ Section algorithms.
     if: (bsize "middle" = #0%nat) || not (bsize "prefix" = #3%nat) then "d" else (
       (* assert: bsize "prefix" = #3%nat *)
       match: "left" with
-        SOME "left" =>
+        SOME "leftp" =>
         let: "left" := !"left" in
         let: "t" := inspect_first "left" in
         let:2 ("t", "l") :=
@@ -297,7 +301,7 @@ Section algorithms.
             if: bsize "b" = #3%nat || ("child" = NONE) then
               naive_pop "left"
             else
-              "pop" (SOME (ref "left"))
+              "pop" "leftp"
           | NONE => "UNREACHABLE"
           end in
         let:3 ("x", "d'", "y") := "t" in
@@ -331,8 +335,8 @@ Section algorithms.
           "UNREACHABLE"
       | NONE =>
         match: "right" with
-          SOME "right" =>
-          let: "right" := !"right" in
+          SOME "rightp" =>
+          let: "right" := !"rightp" in
           let: "t" := inspect_first "right" in
           let:2 ("t", "r") :=
             let:3 ("first", "child", "last") := "t" in
@@ -342,7 +346,7 @@ Section algorithms.
               if: (bsize "b" = #3%nat) || not ("child" = NONE) then
                 naive_pop "right"
               else
-                "pop" (SOME (ref "right"))
+                "pop" "rightp"
             | NONE => "UNREACHABLE"
             end in
           let:3 ("x", "d'", "y") := "t" in
