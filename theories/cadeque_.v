@@ -286,10 +286,10 @@ Section shared_cadeques.
 
 End shared_cadeques.
 
-Hint Resolve elem_of_list_here : find_in_list.
-Hint Resolve elem_of_list_further : find_in_list.
-
+(* TODO unused?
+Hint Constructors list_elem_of : find_in_list.
 Ltac find := eauto with find_in_list.
+ *)
 
 Section algorithms.
 

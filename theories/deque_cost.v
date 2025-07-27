@@ -279,7 +279,7 @@ Section proofs.
                 0, 0, 1.
         rewrite //=.
         iSplitL. rewrite //.
-        iSplitL. iPureIntro. constructor. by auto with find_in_list.
+        iSplitL. iPureIntro. constructor. list_elem_of.
         iSplitL. rewrite /five_tuple_potential //. by iApply time_zero.
         iSplitL. iSplitL. iApply empty_is_buffer. done.
         iSplitL. isEmptyDeque.
@@ -330,7 +330,7 @@ Section proofs.
             0, 0, 1.
     rewrite /=.
     iSplitR. rewrite //.
-    iSplitR. iPureIntro. constructor. auto with find_in_list.
+    iSplitR. iPureIntro. constructor. list_elem_of.
     iSplitR. by iApply time_zero.
     iSplitR. isEmptyBufferAtDepth depth.
     iSplitR. isEmptyDeque.
@@ -774,9 +774,9 @@ Section proofs.
     - inversion H.
     - rewrite /= in H.
       inversion H.
-      + exists a. split; auto with find_in_list.
+      + exists a. split; [ auto | list_elem_of ].
       + specialize (IHo H2) as (k & G1 & G2).
-        exists k. split; auto with find_in_list.
+        exists k. split; [ auto | list_elem_of ].
   Qed.
 
   Property partition_buffer_left_better_spec : forall lvl k o b,

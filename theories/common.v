@@ -107,10 +107,11 @@ Section assumptions.
 
 End assumptions.
 
-Hint Resolve list_elem_of_here : find_in_list.
-Hint Resolve list_elem_of_further : find_in_list.
-
+(* TODO unused?
+Hint Constructors list_elem_of : find_in_list.
 Ltac find := eauto with find_in_list.
+ *)
+Ltac list_elem_of := solve [ repeat first [ assumption | constructor ]].
 
 Section configurations.
   (* This section describes buffer configurations and potentials *)
