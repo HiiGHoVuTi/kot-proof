@@ -18,35 +18,6 @@ Section potential_deques.
 
   Let isDequeType := nat -d> list val -d> val -d> iProp Σ.
 
-  (* Buffer unwinding: abstract content depends on level *)
-  Definition bufferPre (size : nat) : list val -d> val -d> iProp Σ := (
-    λ content buf, raw_buffer content buf ∗ ⌜ length content = size ⌝
-  )%I.
-  (*
-  λ self_triple n content buf,
-    match n with
-    | 0 => raw_buffer content buf ∗ ⌜ length content = size ⌝
-    | S n =>
-        ∃ (triples : list val) (triple_contents : list (list val)),
-          raw_buffer triples buf ∗
-          ⌜ content = List.concat triple_contents ∧ length triples = size ⌝ ∗
-          [∗ list] tri; c ∈ triples; triple_contents, ▷ self_triple n c tri
-    end
-  )%I.
-  *)
-
-  (*
-  Global Instance bufferPreContractive size : Contractive (bufferPre size).
-  Proof.
-    rewrite /bufferPre.
-    intros k f1 f2 Hdist n c b.
-    repeat (f_contractive || f_equiv).
-    (*
-    apply (Hdist _ _ _).
-    *)
-  Qed.
-  *)
-
   Definition five_tuple_potential : nat -> nat -> iProp Σ :=
     λ pre suf, ⏱ (pre ⋄ suf).
 
@@ -57,11 +28,11 @@ Section potential_deques.
       ⌜ d = (pr, ld, md, rd, sf)%V ⌝ ∗
       ⌜ five_tuple_configuration kPr (length left_content) kMd (length right_content) kSf ⌝ ∗
       five_tuple_potential kPr kSf ∗
-      bufferPre kPr pr_content pr ∗
+      buffer kPr pr_content pr ∗
       deque_pred (S n) left_triples ld ∗
-      bufferPre kMd md_content md ∗
+      buffer kMd md_content md ∗
       deque_pred (S n) right_triples rd ∗
-      bufferPre kSf sf_content sf ∗
+      buffer kSf sf_content sf ∗
       ([∗list] c;tr ∈ left_content;left_triples, ▷ triple_pred (S n) c tr) ∗
       ([∗list] c;tr ∈ right_content;right_triples, ▷ triple_pred (S n) c tr) ∗
       ⌜ o = pr_content ++ List.concat left_content ++ md_content ++ List.concat right_content ++ sf_content ⌝
@@ -72,7 +43,7 @@ Section potential_deques.
     λ n o d,
       (⌜ d = NONEV ∧ o = [] ⌝) ∨
       (∃ ℓ : loc, ⌜ d = SOMEV #ℓ ⌝ ∗
-        ℓ ⤇{π . n} fFiveTuple triple_pred deque_pred n o)
+        ℓ ⤇{π, n} fFiveTuple triple_pred deque_pred n o)
   )%I.
 
   Let fTriple (triple_pred : isDequeType) (deque_pred : isDequeType) : isDequeType := (
@@ -82,9 +53,9 @@ Section potential_deques.
         (kFst kLst : nat) triples,
         ⌜ triple_configuration kFst (length child_content) kLst ⌝ ∗
         ⌜ t = (fst, ch, lst)%V ⌝ ∗
-        bufferPre kFst fst_content fst ∗
+        buffer kFst fst_content fst ∗
         deque_pred n triples ch ∗
-        bufferPre kLst lst_content lst ∗
+        buffer kLst lst_content lst ∗
         ([∗list] c;tr ∈ child_content;triples, ▷ triple_pred n c tr) ∗
         ⌜ o = fst_content ++ List.concat child_content ++ lst_content ⌝
   )%I.
@@ -108,11 +79,11 @@ Section potential_deques.
     do 6 f_equiv. by apply (Hdist_cad _ _ _).
     f_equiv. by apply (Hdist_cad _ _ _).
     (*
-    do 30 (f_contractive || f_equiv). apply bufferPreContractive, dist_dist_later, Hdist_cad.
+    do 30 (f_contractive || f_equiv). apply bufferContractive, dist_dist_later, Hdist_cad.
     f_equiv. by apply (Hdist_tri _ _ _).
-    f_equiv. by apply bufferPreContractive, dist_dist_later, Hdist_cad.
+    f_equiv. by apply bufferContractive, dist_dist_later, Hdist_cad.
     f_equiv. apply (Hdist_tri _ _ _).
-    f_equiv. apply bufferPreContractive, dist_dist_later, Hdist_cad.
+    f_equiv. apply bufferContractive, dist_dist_later, Hdist_cad.
     *)
   Qed.
 
@@ -132,7 +103,6 @@ Section potential_deques.
   Definition isDeque := fixpoint_B fTriple fDeque.
   Definition fiveTuple := fFiveTuple triple isDeque.
   Definition isElement n o e := match n with 0 => ⌜ o = [e] ⌝%I | S n => triple n o e end.
-  Definition buffer size := bufferPre size.
   Definition IsDeque o d := isDeque 0 o d.
 
   Definition isPersFiveTuple : isDequeType := (
@@ -143,7 +113,7 @@ Section potential_deques.
       ⌜ five_tuple_configuration kPr (length left_content) kMd (length right_content) kSf ⌝ ∗
       buffer kPr pr_content pr ∗
       isDeque (S n) left_triples ld ∗
-      bufferPre kMd md_content md ∗
+      buffer kMd md_content md ∗
       isDeque (S n) right_triples rd ∗
       buffer kSf sf_content sf ∗
       ([∗list] c;tr ∈ left_content;left_triples, ▷ triple (S n) c tr) ∗
@@ -159,7 +129,7 @@ Section potential_deques.
       ⌜ five_tuple_configuration kPr (length left_content) kMd (length right_content) kSf ⌝ ∗
       buffer kPr pr_content pr ∗
       isDeque (S n) left_triples ld ∗
-      bufferPre kMd md_content md ∗
+      buffer kMd md_content md ∗
       isDeque (S n) right_triples rd ∗
       buffer kSf sf_content sf ∗
       ([∗list] c;tr ∈ left_content;left_triples, triple (S n) c tr) ∗
@@ -176,7 +146,7 @@ Section potential_deques.
       five_tuple_potential kPr kSf ∗
       buffer kPr pr_content pr ∗
       isDeque (S n) left_triples ld ∗
-      bufferPre kMd md_content md ∗
+      buffer kMd md_content md ∗
       isDeque (S n) right_triples rd ∗
       buffer kSf sf_content sf ∗
       ([∗list] c;tr ∈ left_content;left_triples, ▷ triple (S n) c tr) ∗
@@ -197,13 +167,6 @@ Section potential_deques.
   Proof.
     symmetry.
     apply (fixpoint_A_unfold fTriple fDeque _ _ _).
-  Qed.
-
-  (* Persistence instances *)
-  Global Instance bufferPersistent s b c :
-    Persistent (bufferPre s b c).
-  Proof.
-    apply _.
   Qed.
 
   Global Instance isDequePersistent n o d : Persistent (isDeque n o d).
@@ -293,10 +256,6 @@ Notation time_for_pop := (3 * time_for_concat).
 (* Useful tactics used throughout proofs (out of a section to be exported) *)
 Ltac ℓisDeque ℓ := rewrite !isDeque_unfold; iRight; iExists ℓ; iSplitR; [done |].
 Ltac isEmptyDeque := rewrite !isDeque_unfold; iLeft; iPureIntro; done.
-Ltac isEmptyBufferAtDepth depth :=
-  destruct depth;
-  [ iSplitL; [by iApply empty_is_buffer | rewrite //]
-  | iExists [], []; iSplitL; try iSplitL; rewrite //; by iApply empty_is_buffer ].
 Ltac invert_all_in :=
   repeat match goal with
   | H : _ ∈ _ |- _ =>
@@ -335,27 +294,27 @@ Section proofs.
   Qed.
 
   Example singleton_deque_spec : forall x : val,
-    {{{ emp }}} singleton_deque x {{{ d, RET d; IsDeque π (⋅x) d }}}.
+    {{{ emp }}} asingleton x {{{ d, RET d; IsDeque π (⋅x) d }}}.
   Proof.
     iIntros (x Φ) "_ Hψ".
-    rewrite /singleton_deque. wp_pures.
+    rewrite /asingleton. wp_pures.
     wp_bind (bpush _ _)%E.
     wp_apply (bpush_spec) as "%b #Hb".
-      { iApply empty_is_buffer. }
+      { iApply bempty_spec. }
     wp_pures.
     wp_bind (ref _)%E.
     wp_apply (ssref_alloc _ (fiveTuple π 0 (⋅ x))) as "%ℓ Hℓ".
       { rewrite /fiveTuple.
-        iExists empty_buffer, empty, empty_buffer, empty, b,
+        iExists bempty, empty, bempty, empty, b,
                 []          , []   , []          , []    , (⋅x),
                 0, 0, 1, [], [].
         rewrite //=.
         iSplitL. rewrite //.
         iSplitL. iPureIntro. constructor. list_elem_of.
         iSplitL. rewrite /five_tuple_potential //. by iApply time_zero.
-        iSplitL. iSplitL. iApply empty_is_buffer. done.
+        iSplitL. iApply bempty_spec.
         iSplitL. isEmptyDeque.
-        iSplitL. iSplitL. iApply empty_is_buffer. done.
+        iSplitL. iApply bempty_spec.
         iSplitL. isEmptyDeque.
         iFrame "#". done.
       }
@@ -366,48 +325,30 @@ Section proofs.
     done.
   Qed.
 
-  Lemma bsize_better_spec k o b :
-    {{{ buffer k o b }}}
-      bsize b
-    {{{ RET #k; True }}}.
-  Proof.
-    iIntros (ψ) "Hb Hψ".
-    iDestruct "Hb" as "[Hb <-]".
-    by iApply (bsize_spec with "Hb").
-  Qed.
-
-  Lemma empty_is_buffer_at : ⊢ buffer 0 [] empty_buffer.
-  Proof.
-    iSplitR; [ by iApply empty_is_buffer | done ].
-  Qed.
-
-  Lemma singleton_deque_better : forall depth x b, raw_buffer (⋅x) b -∗ fiveTuple π depth (⋅ x) (empty_buffer, NONEV, empty_buffer, NONEV, b)%V.
+  Lemma singleton_deque_better : forall depth x b, buffer 1 (⋅x) b -∗ fiveTuple π depth (⋅ x) (bempty, NONEV, bempty, NONEV, b)%V.
   Proof.
     iIntros (depth x b) "#Hb".
-    iExists empty_buffer, empty, empty_buffer, empty, b,
-            []          , []   , []          , []   , (⋅x),
+    iExists bempty, empty, bempty, empty, b,
+            []           , []    , []   , [], (⋅x),
             0, 0, 1, [], [].
     rewrite /=.
     iSplitR. rewrite //.
     iSplitR. iPureIntro. constructor. list_elem_of.
     iSplitR. by iApply time_zero.
-    iSplitR. by iApply empty_is_buffer_at.
+    iSplitR. by iApply bempty_spec.
     iSplitR. isEmptyDeque.
-    iSplitR. by iApply empty_is_buffer_at.
+    iSplitR. by iApply bempty_spec.
     iSplitR. isEmptyDeque.
-    iSplitL; [| done].
-    rewrite /bufferPre.
-    destruct depth.
-    - iSplitL; rewrite //.
-    - rewrite /isElement.
-      iFrame. by auto.
+    iSplitL; done.
   Qed.
 
-  Lemma empty_buffer_is_empty : forall b o, buffer 0 o b ⊢ ⌜ o = [] ⌝.
+  (* NOTE(Juliette): bring back?
+  Lemma bempty_is_empty : forall b o, buffer 0 o b ⊢ ⌜ o = [] ⌝.
   Proof.
     iIntros (b o) "H".
     iDestruct "H" as "[_ %Heq]". iPureIntro; by apply nil_length_inv.
   Qed.
+  *)
 
   (*
   Lemma push_buffer_element_spec x b : forall n o oX size,
@@ -425,7 +366,7 @@ Section proofs.
       iDestruct "Hb" as "(%triples & %triples_content & Hb & [%Ho %lenEqSz] & areTriples)".
       wp_apply (bpush_spec with "Hb") as "%b' Hb'".
       iApply "Hψ".
-      rewrite /buffer /bufferPre.
+      rewrite /buffer /buffer.
       iExists (⋅ x ++ triples), (⋅ oX ++ triples_content).
       iFrame. iSplitR.
       + iPureIntro; split.
@@ -495,8 +436,8 @@ Section proofs.
   inversion cfg;
   [ rewrite Heq;
     symmetry in H, H1;
-    iDestruct (empty_buffer_is_empty with "Hpr") as "->";
-    iDestruct (empty_buffer_is_empty with "Hmd") as "->";
+    iDestruct (bempty_is_empty with "Hpr") as "->";
+    iDestruct (bempty_is_empty with "Hmd") as "->";
     rewrite (nil_length_inv _ H);
     rewrite (nil_length_inv _ H1);
     iPureIntro;
@@ -505,6 +446,7 @@ Section proofs.
   ].
   *)
 
+  (*
   Lemma bpush_spec2 x b : forall o size,
     {{{ buffer size o b }}}
       bpush x b
@@ -539,18 +481,20 @@ Section proofs.
       beject b
     {{{ b' x o', RET (b', x); buffer size o' b' ∗ ⌜ o = o' ++ ⋅x ⌝ }}}.
   Admitted.
+  *)
 
-  Lemma decrease_in : forall n o, n ∈ map S o -> ∃ k, n = S k ∧ k ∈ o.
+  Lemma decrease_in : forall n o, n ∈ map S o -> ∃ k, n = k + 1 ∧ k ∈ o.
   Proof.
     induction o; intros.
     - inversion H.
     - rewrite /= in H.
       inversion H.
-      + exists a. split; [ auto | list_elem_of ].
+      + exists a. split; [ auto | list_elem_of ]. lia.
       + specialize (IHo H2) as (k & G1 & G2).
         exists k. split; [ auto | list_elem_of ].
   Qed.
 
+  (*
   Property partition_buffer_left_better_spec : forall k o b,
     {{{ buffer k o b ∗ ⌜ k ∈ [2..6] ⌝ }}}
       partition_buffer_left b
@@ -572,8 +516,11 @@ Section proofs.
         buffer k1 o1 b1 ∗ buffer k2 o2 b2 ∗
         ⌜ k1 ∈ [0; 2; 3] ∧ k2 ∈ [2; 3] ∧ o1 ++ o2 = o ⌝ }}}.
   Admitted.
+  *)
 
-  Lemma lookup_triple depth (L : list (list val)) (M : list val) y : y ∈ M -> ([∗ list] x;y ∈ L;M, triple π depth x y) ⊢ ∃ x, triple π depth x y.
+  Lemma lookup_triple depth (L : list (list val)) (M : list val) y :
+    y ∈ M -> ([∗ list] x;y ∈ L;M, triple π depth x y)
+    ⊢ ∃ x, triple π depth x y.
   Proof.
     revert M. induction L; iIntros (M H) "LM".
     - iExFalso.

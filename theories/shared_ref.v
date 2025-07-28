@@ -122,11 +122,11 @@ Context `{!heapGS Σ} `{!na_invG Σ}.
 Definition ssref (ℓ : loc) (π : gname) (n : nat) (ϕ : val -> iProp Σ) : iProp Σ :=
   na_inv π (W n) (∃ v, ϕ v ∗ ℓ ↦ v).
 
-Notation "l ⤇{ π . N } ϕ" := (ssref l π N ϕ) (at level 60).
+Notation "l ⤇{ π , N } ϕ" := (ssref l π N ϕ) (at level 60).
 
 Definition Token π n := na_own π (↑ Ξ n).
 
-Global Instance pers_ssref ℓ π N ϕ : Persistent (ssref ℓ π N ϕ).
+Global Instance pers_ssref ℓ π N ϕ : Persistent (ℓ ⤇{π , N} ϕ).
 Proof. apply _. Qed.
 
 Theorem new_pool : ⊢ |==> ∃ π, Token π 0.
@@ -142,7 +142,7 @@ Variable π : gname.
 Variable ϕ : val -> iProp Σ.
 
 Theorem ssref_alloc (v : val) : forall N,
-  {{{ ϕ v }}} ref v {{{ ℓ, RET #ℓ; ℓ ⤇{π . N} ϕ }}}.
+  {{{ ϕ v }}} ref v {{{ ℓ, RET #ℓ; ℓ ⤇{π , N} ϕ }}}.
 Proof.
   iIntros (N ψ) "Hv Hψ".
   wp_alloc ℓ as "Hℓ".
@@ -154,7 +154,7 @@ Qed.
 
 (* Unused. *)
 Theorem ssref_load `{forall x, Persistent (ϕ x)} (ℓ : loc) : forall n,
-  {{{ ℓ ⤇{π . n} ϕ ∗ Token π n }}} ! #ℓ {{{ v', RET v'; ϕ v' ∗ Token π n }}}.
+  {{{ ℓ ⤇{π , n} ϕ ∗ Token π n }}} ! #ℓ {{{ v', RET v'; ϕ v' ∗ Token π n }}}.
 Proof.
   iIntros (n ψ) "[ι O] Hψ".
   iDestruct (na_own_acc (↑ W n) with "O") as "[O A]". by apply access_stage.
@@ -169,7 +169,7 @@ Qed.
 
 (* Unused. *)
 Theorem ssref_store (ℓ : loc) (x : val) : forall n,
-  {{{ ℓ ⤇{π . n} ϕ ∗ ϕ x ∗ Token π n }}} #ℓ <- x {{{ RET #(); Token π n }}}.
+  {{{ ℓ ⤇{π , n} ϕ ∗ ϕ x ∗ Token π n }}} #ℓ <- x {{{ RET #(); Token π n }}}.
 Proof.
   iIntros (n ψ) "(#ι & Hx & O) Hψ".
   iDestruct (na_own_acc (↑ W n) with "O") as "[O A]". by apply access_stage.
@@ -184,7 +184,7 @@ Proof.
 Qed.
 
 Theorem ssref_load_open (ℓ : loc) : forall n,
-  {{{ ℓ ⤇{π . n} ϕ ∗ Token π n }}}
+  {{{ ℓ ⤇{π , n} ϕ ∗ Token π n }}}
     !#ℓ
   {{{ v, RET v; Token π (S n) ∗ ϕ v ∗
     ∀ v', ▷ ϕ v' -∗ Token π (S n) -∗ WP (#ℓ <- v') {{ _, Token π n }}
@@ -214,7 +214,7 @@ Proof.
 Qed.
 
 Theorem ssref_read P `{forall v, Persistent (P v)} (ℓ : loc) : forall n,
-  {{{ ℓ ⤇{π . n} ϕ ∗ Token π n ∗ (∀ v, ϕ v -∗ (P v ∗ ϕ v)) }}} !#ℓ {{{ v', RET v'; P v' ∗ Token π n }}}.
+  {{{ ℓ ⤇{π , n} ϕ ∗ Token π n ∗ (∀ v, ϕ v -∗ (P v ∗ ϕ v)) }}} !#ℓ {{{ v', RET v'; P v' ∗ Token π n }}}.
 Proof.
   iIntros (n ψ) "(Hℓ & O & HP) Hψ".
   iDestruct (na_own_acc (↑ W n) with "O") as "[O A]". by apply access_stage.
@@ -232,7 +232,7 @@ Qed.
 End property_ref.
 
 Notation "l ⤇ ϕ" := (csref l ϕ) (at level 60).
-Notation "l ⤇{ π . N } ϕ" := (ssref l π N ϕ) (at level 60).
+Notation "l ⤇{ π , N } ϕ" := (ssref l π N ϕ) (at level 60).
 
 Section instances.
   Context `{!heapGS Σ} `{!na_invG Σ}.

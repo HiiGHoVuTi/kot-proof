@@ -30,9 +30,9 @@ Section proof.
     rewrite {1} isDeque_unfold.
     iDestruct "Hd" as "[[-> ->] | (%ℓ & -> & #Hℓ)]".
     - wp_pures.
-      rewrite /singleton_deque. wp_pures.
+      rewrite /asingleton. wp_pures.
       wp_apply bpush_spec as "%b #Hb".
-        { iApply empty_is_buffer. }
+        { iApply bempty_spec. }
       wp_pures.
       wp_bind (ref _)%E.
       wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x))) as "%ℓ #Hℓ".
@@ -50,93 +50,66 @@ Section proof.
             & #Hpr & #Hld & #Hmd & #Hrd & #Hsf & #Hltr & #Hrtr & %Heq)]".
       wp_pures.
       wp_bind (if: _ then _ else _)%E.
-      wp_apply (bsize_better_spec with "Hmd") as "_".
+      wp_apply (bis_empty_spec with "Hmd") as "_".
       wp_pures.
       destruct (bool_decide (kMd = 0)) eqn:?.
       + apply bool_decide_eq_true_1 in Heqb as Heqmd.
-        apply bool_decide_code_true in Heqb as ->.
         wp_pures.
         wp_bind (if: _ then _ else _)%E.
-        wp_apply (bsize_better_spec with "Hsf") as "_".
+        wp_apply (bhas_length_8_spec with "Hsf") as "_".
         wp_pures.
         destruct (bool_decide (kSf = 8)) eqn:?.
-        * apply bool_decide_eq_true_1 in Heqb as ->.
+        * apply bool_decide_eq_true_1 in Heqb0 as ->.
+          inversion cfg; invert_all_in; destruct ldC; inversion H; destruct rdC; inversion H1.
+          iDestruct (big_sepL2_nil_inv_l with "Hltr") as "->".
+          iDestruct (big_sepL2_nil_inv_l with "Hrtr") as "->".
+          iDestruct (buffer_length with "Hpr") as "%HlprC". destruct prC; [| inversion HlprC].
+          iDestruct (buffer_length with "Hmd") as "%HlmdC". destruct mdC; [| inversion HlmdC].
           wp_pures.
-          wp_apply (bpop_spec2 with "Hsf") as "%x1 %b1 %o1 (Hsf' & ->)".
+          wp_apply (bsplit8_spec with "Hsf") as "%b1 %b2 %b3 %o1 %o2 %o3 (#Hb1 & #Hb2 & #Hb3 & %H123)".
           wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x2 %b2 %o2 (Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x3 %b3 %o3 (Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpush_spec2) as "%bp3 Hbp".
-            { by iApply empty_is_buffer_at. }
-          wp_apply (bpush_spec2 with "Hbp") as "%bp2 Hbp".
-          wp_apply (bpush_spec2 with "Hbp") as "%pr' #Hpr'".
-          wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x4 %b4 %o4 (Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x5 %sf' %o5 (#Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpush_spec2) as "%bp5 Hbm".
-            { by iApply empty_is_buffer_at. }
-          wp_apply (bpush_spec2 with "Hbm") as "%md' #Hmd'".
-          wp_pures.
-          rewrite !app_nil_r Heqmd.
           wp_bind (#ℓ <- _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           iApply (wp_wand with "[DONE ι O]").
           {
             iApply ("DONE" with "[ι]"); [| by iFrame].
             iNext.
-            iExists pr', empty, md', empty, sf',
-              (⋅x1 ++ ⋅x2 ++ ⋅x3), [], (⋅x4 ++ ⋅x5), [], o5,
+            iExists b1, ld, b2, rd, b3,
+              o1, [], o2, [], o3,
               3, 2, 3, [], [].
             iFrame. iFrame "#".
             doneL.
             iSplitR. by easy_config.
-            iSplitR. by isEmptyDeque.
-            iSplitR. by isEmptyDeque.
             do 2 doneL.
             inversion cfg; [| exfalso; lia].
-            iDestruct (empty_buffer_is_empty with "Hpr") as "->".
-            iDestruct (empty_buffer_is_empty with "Hmd") as "->".
-            destruct ldC; inversion H.
-            destruct rdC; inversion H1.
             iPureIntro.
-            rewrite Heq //.
+            rewrite Heq //=.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
           wp_bind (bpush _ _)%E.
-          wp_apply (bpush_spec2 with "Hpr'") as "%pr'' #Hpr''".
+          wp_apply (bpush_spec with "Hb1") as "%pr'' #Hpr''".
+          rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
           iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
           wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
-          -- iExists pr'', empty, md', empty, sf',
-              (⋅x ++ ⋅x1 ++ ⋅x2 ++ ⋅x3), [], (⋅x4 ++ ⋅x5), [], o5,
+          -- iExists pr'', ld, b2, rd, b3,
+              (⋅x ++ o1), [], o2, [], o3,
               4, 2, 3, [], [].
             iFrame. iFrame "#".
             doneL.
             iSplitR. by easy_config.
-            iSplitR. by isEmptyDeque.
-            iSplitR. by isEmptyDeque.
             do 2 doneL.
             inversion cfg; [| exfalso; lia].
-            iDestruct (empty_buffer_is_empty with "Hpr") as "->".
-            iDestruct (empty_buffer_is_empty with "Hmd") as "->".
-            destruct ldC; inversion H.
-            destruct rdC; inversion H1.
             iPureIntro.
-            rewrite Heq //.
+            rewrite Heq H123 //=.
           -- wp_pures.
             iApply "Hψ".
             iFrame.
             ℓisDeque ℓ'.
             iExact "Hℓ'".
-        * apply bool_decide_eq_false_1 in Heqb as sfNotFull.
-          apply bool_decide_code_false in Heqb as ->.
-          wp_pures.
+        * wp_pures.
           wp_bind (#ℓ <- _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           iApply (wp_wand with "[DONE ι O]").
@@ -149,23 +122,24 @@ Section proof.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
-          wp_apply (bpush_spec2 with "Hsf") as "%sf' #Hsf'".
+          rewrite /assemble_.
+          wp_apply (bpush_spec with "Hsf") as "%sf' #Hsf'".
           wp_pures.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
-          -- iExists pr, ld, md, rd, sf',
+          -- iExists bempty, empty, bempty, empty, sf',
               [], [], [], [], (⋅x ++ oD),
               0, 0, (S kSf), [], [].
             inversion cfg; [| exfalso; lia ].
-            iDestruct (empty_buffer_is_empty with "Hpr") as "->".
-            iDestruct (empty_buffer_is_empty with "Hmd") as "->".
+            iDestruct (buffer_length with "Hpr") as "%HlprC". destruct prC; [| inversion HlprC].
+            iDestruct (buffer_length with "Hmd") as "%HlmdC". destruct mdC; [| inversion HlmdC].
             symmetry in H; rewrite (nil_length_inv _ H) in Heq |- *.
             symmetry in H1; rewrite (nil_length_inv _ H1) in Heq |- *.
             iDestruct (big_sepL2_nil_inv_l with "Hltr") as "->".
             iDestruct (big_sepL2_nil_inv_l with "Hrtr") as "->".
             iFrame.
             doneL.
-            iSplitR; [ iPureIntro; constructor; invert_all_in; list_elem_of |].
+            iSplitR. [ iPureIntro; constructor; invert_all_in; list_elem_of |].
             iSplitL; [ iApply (three_time_enough with "ι") |].
             doneL.
             aac_normalise in Heq.

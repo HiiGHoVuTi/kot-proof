@@ -6,6 +6,7 @@ From Deque Require Import tick.
 (* Section notations *)
 Notation "⋅ x" := [x] (at level 60).
 Definition nonempty {A : Type} (x : list A) := ~(x = []).
+(* Notation x &in [n..m] := (n <= x /\ x <= m) ? *)
 Notation "[4..6]" := [4; 5; 6].
 Notation "[3..6]" := [3; 4; 5; 6].
 Notation "[2..6]" := [2; 3; 4; 5; 6].
@@ -21,6 +22,152 @@ Section assumptions.
   Section buffers.
     (* Buffers will have bounded size, guaranteeing O(1) time and space complexity *)
 
+    Axiom buffer : nat -> list val -> val -> iProp Σ.
+    Axiom buffer_persistent : forall n o v, Persistent (buffer n o v).
+    Global Instance Ibuffer_persistent n o v : Persistent (buffer n o v).
+    Proof. by apply buffer_persistent. Qed.
+
+    Axiom bempty : val.
+    Axiom bempty_spec : ⊢ buffer 0 [] bempty.
+
+    Axiom buffer_length : forall n o b, buffer n o b ⊢ ⌜ length o = n ⌝.
+
+    Axiom blength : val.
+    Axiom blength_spec : forall n o b,
+      {{{ buffer n o b }}} blength b {{{ RET #n; emp }}}.
+
+    Axiom bis_empty : val.
+    Axiom bis_empty_spec : forall n o b,
+      {{{ buffer n o b }}} bis_empty b {{{ RET #(bool_decide (n = 0%nat)); emp }}}.
+
+    Axiom bpush : val.
+    Axiom bpush_spec : forall x n o b,
+      {{{ buffer n o b }}} bpush x b {{{ b', RET b'; buffer (n+1) (⋅x++o) b' }}}.
+
+    Axiom bpop : val.
+    Axiom bpop_spec : forall x n o b,
+      {{{ buffer (n+1) (⋅x++o) b }}} bpop b {{{ b', RET (x, b')%V; buffer n o b' }}}.
+
+    Axiom bfirst : val.
+    Axiom bfirst_spec : forall x n o b,
+      {{{ buffer n (⋅x++o) b }}} bfirst b {{{ RET x; emp }}}.
+
+    Axiom binject : val.
+    Axiom binject_spec : forall x n o b,
+      {{{ buffer n o b }}} binject b x {{{ b', RET b'; buffer (n+1) (o++⋅x) b }}}.
+
+    Axiom beject : val.
+    Axiom beject_spec : forall x n o b,
+      {{{ buffer (n+1) (o++⋅x) b }}} beject b {{{ b', RET (b', x)%V; buffer n o b' }}}.
+
+    Axiom blast : val.
+    Axiom blast_spec : forall x n o b,
+      {{{ buffer (n+1) (o++⋅x) b }}} blast b {{{ RET x; emp }}}.
+
+    (* map??? *)
+
+    (* TODO(Juliette): fold_left & fold_right *)
+    Axiom bfold_right : val.
+    Axiom bfold_left : val.
+
+    Axiom bdoubleton : val.
+    Axiom bdoubleton_spec : forall x y,
+      {{{ emp }}} bdoubleton x y {{{ b, RET b; buffer 2 (⋅x ++ ⋅y) b }}}.
+
+    Axiom bhas_length_3 : val.
+    Axiom bhas_length_3_spec : forall n b o,
+      {{{ buffer n o b }}} bhas_length_3 b {{{ RET #(bool_decide (n = 3%nat)); emp }}}.
+
+    Axiom bhas_length_8 : val.
+    Axiom bhas_length_8_spec : forall n b o,
+      {{{ buffer n o b }}} bhas_length_8 b {{{ RET #(bool_decide (n = 8%nat)); emp }}}.
+
+    Axiom bhas_length_6 : val.
+    Axiom bhas_length_6_spec : forall n b o,
+      {{{ buffer n o b }}} bhas_length_6 b {{{ RET #(bool_decide (n = 6%nat)); emp }}}.
+
+    Axiom bmove_left_1_33 : val.
+    Axiom bmove_left_1_33_spec : forall b1 b2 o1 o2,
+      {{{ buffer 3 o1 b1 ∗ buffer 3 o2 b2 }}}
+        bmove_left_1_33 b1 b2
+      {{{ b1' b2' o1' o2', RET (b1', b2')%V;
+          buffer 4 o1' b1' ∗ buffer 2 o2' b2' ∗ ⌜ o1 ++ o2 = o1' ++ o2' ⌝ }}}.
+
+    Axiom bmove_right_1_33 : val.
+    Axiom bmove_right_1_33_spec : forall b1 b2 o1 o2,
+      {{{ buffer 3 o1 b1 ∗ buffer 3 o2 b2 }}}
+        bmove_right_1_33 b1 b2
+      {{{ b1' b2' o1' o2', RET (b1', b2')%V;
+          buffer 2 o1' b1' ∗ buffer 4 o2' b2' ∗ ⌜ o1 ++ o2 = o1' ++ o2' ⌝ }}}.
+
+    Axiom bdouble_move_left : val.
+    Axiom bdouble_move_left_spec : forall b1 b2 b3 o1 o2 o3 n3,
+      {{{ buffer 3 o1 b1 ∗ buffer 2 o2 b2 ∗ buffer (n3+1) o3 b3 }}}
+        bdouble_move_left b1 b2 b3
+      {{{ b1' b2' b3' o1' o2' o3', RET (b1', b2', b3')%V;
+        buffer 4 o1' b1' ∗ buffer 2 o2' b2' ∗ buffer n3 o3' b3' ∗
+        ⌜ o1 ++ o2 ++ o3 = o1' ++ o2' ++ o3' ⌝ }}}.
+
+    Axiom bdouble_move_right : val.
+    Axiom bdouble_move_right_spec : forall b1 b2 b3 o1 o2 o3 n1,
+      {{{ buffer (n1+1) o1 b1 ∗ buffer 2 o2 b2 ∗ buffer 3 o3 b3 }}}
+        bdouble_move_right b1 b2 b3
+      {{{ b1' b2' b3' o1' o2' o3', RET (b1', b2', b3')%V;
+          buffer n1 o1' b1' ∗ buffer 2 o2' b2' ∗ buffer 4 o3' b3' ∗
+          ⌜ o1 ++ o2 ++ o3 = o1' ++ o2' ++ o3' ⌝ }}}.
+
+    Axiom bconcat23 : val.
+    Axiom bconcat23_spec : forall b1 b2 o1 o2,
+      {{{ buffer 2 o1 b1 ∗ buffer 3 o2 b2 }}}
+        bconcat23 b1 b2
+      {{{ b', RET b'; buffer 5 (o1 ++ o2) b' }}}.
+
+    Axiom bconcat32 : val.
+    Axiom bconcat32_spec : forall b1 b2 o1 o2,
+      {{{ buffer 3 o1 b1 ∗ buffer 2 o2 b2 }}}
+        bconcat32 b1 b2
+      {{{ b', RET b'; buffer 5 (o1 ++ o2) b' }}}.
+
+    Axiom bconcat323 : val.
+    Axiom bconcat323_spec : forall b1 b2 b3 o1 o2 o3,
+      {{{ buffer 3 o1 b1 ∗ buffer 2 o2 b2 ∗ buffer 3 o3 b3 }}}
+        bconcat323 b1 b2 b3
+      {{{ b', RET b'; buffer 8 (o1 ++ o2 ++ o3) b' }}}.
+
+    Axiom bsplit23l : val.
+    Axiom bsplit23l_spec : forall n o b,
+      {{{ buffer n o b ∗ ⌜ n ∈ [2..6] ⌝ }}}
+        bsplit23l b
+      {{{ b1 b2 o1 o2 n1 n2, RET (b1, b2)%V;
+          buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [2; 3] /\ n2 ∈ [0; 2; 3] ⌝ }}}.
+
+    Axiom bsplit23r : val.
+    Axiom bsplit23r_spec : forall n o b,
+      {{{ buffer n o b ∗ ⌜ n ∈ [2..6] ⌝ }}}
+        bsplit23r b
+      {{{ b1 b2 o1 o2 n1 n2, RET (b1, b2)%V;
+          buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [0; 2; 3] /\ n2 ∈ [2; 3] ⌝ }}}.
+
+    Axiom bsplit8 : val.
+    Axiom bsplit8_spec : forall o b,
+      {{{ buffer 8 o b }}}
+        bsplit8 b
+      {{{ b1 b2 b3 o1 o2 o3, RET (b1, b2, b3)%V;
+          buffer 3 o1 b1 ∗ buffer 2 o2 b2 ∗ buffer 3 o3 b3 ∗ ⌜ o = o1 ++ o2 ++ o3 ⌝ }}}.
+
+    Axiom bsplit642 : val.
+    Axiom bsplit642_spec : forall o b,
+      {{{ buffer 6 o b }}}
+        bsplit642 b
+      {{{ b1 b2 o1 o2, RET (b1, b2)%V; buffer 4 o1 b1 ∗ buffer 2 o2 b2 ∗ ⌜ o = o1 ++ o2 ⌝ }}}.
+
+    Axiom bsplit624 : val.
+    Axiom bsplit624_spec : forall o b,
+      {{{ buffer 6 o b }}}
+        bsplit624 b
+      {{{ b1 b2 o1 o2, RET (b1, b2)%V; buffer 2 o1 b1 ∗ buffer 4 o2 b2 ∗ ⌜ o = o1 ++ o2 ⌝ }}}.
+
+    (*
     Definition raw_buffer (o : list val) : val -> iProp Σ.
     Admitted.
 
@@ -102,6 +249,7 @@ Section assumptions.
     (* NOTE(Juliette): basically [fold_right push] and [fold_left inject] *)
     Definition push_whole_buffer : val. Admitted.
     Definition inject_whole_buffer : val. Admitted.
+    *)
 
   End buffers.
 
@@ -162,8 +310,8 @@ Section algorithms.
 
   Let empty := NONEV.
 
-  Example singleton_deque : val :=
-    λ: "x", SOME (ref (empty_buffer, NONEV, empty_buffer, NONEV, bpush "x" empty_buffer)%E).
+  Example asingleton : val :=
+    λ: "x", SOME (ref (bempty, NONEV, bempty, NONEV, bpush "x" bempty)%E).
 
   Notation "'let:2' ( x , y ) := u 'in' v"
   := (let: "TMP2" := u in
@@ -188,45 +336,90 @@ Section algorithms.
         V)%E
       (at level 190, v,w,x,y,z at next level, U at next level, V at next level, only parsing).
 
+  Definition is_ordinary : val :=
+    λ: "b", (#2%nat ≤ blength "b") && (blength "b" ≤ #3%nat).
+
+  Definition assemble_ : val :=
+    λ: "p", λ: "l", λ: "m", λ: "r", λ: "s",
+      SOME (ref ("p", "l", "m", "r", "s")).
+
+  Definition assemble : val :=
+    λ: "p", λ: "l", λ: "m", λ: "r", λ: "s",
+    if: bis_empty "m" && bis_empty "s" then
+      empty
+    else
+      assemble_ ("p", "l", "m", "r", "s").
+
+  Definition atriple_ : val :=
+    λ: "f", λ: "c", λ: "l",
+      ("f", "c", "l").
+
+  Definition atriple : val :=
+    λ: "f", λ: "c", λ: "l",
+    if: bis_empty "f" then
+      atriple_ "l" "c" bempty
+    else
+      atriple_ "f" "c" "l".
+
+  Definition abuffer : val :=
+    λ: "b", atriple_ "b" empty bempty.
+
   Definition push : val :=
     rec: "push" "x" "d" :=
     tick #();;
     match: "d" with
-      NONE => singleton_deque "x"
+      NONE => asingleton "x"
     | SOME "r" =>
-      let:5 ("prefix", "left_deque", "middle", "right_deque", "suffix") := !"r" in
-      if: bsize "middle" = #0%nat then (
-        (* suffix-only *)
-        if: bsize "suffix" = #8%nat then (
-          let:2 ("x1", "suffix") := bpop "suffix" in
-          let:2 ("x2", "suffix") := bpop "suffix" in
-          let:2 ("x3", "suffix") := bpop "suffix" in
-          let: "prefix" := bpush "x1" (bpush "x2" (bpush "x3" empty_buffer)) in
-          let:2 ("x4", "suffix") := bpop "suffix" in
-          let:2 ("x5", "suffix") := bpop "suffix" in
-          let: "middle" := bpush "x4" (bpush "x5" empty_buffer) in
-          "r" <- ( "prefix", empty, "middle", empty, "suffix" );;
-          SOME (ref (bpush "x" "prefix", empty, "middle", empty, "suffix"))
+      let:5 ("prefix", "left", "middle", "right", "suffix") := !"r" in
+      if: bis_empty "middle" then (
+        if: bhas_length_8 "suffix" then (
+          let:3 ("prefix", "middle", "suffix") := bsplit8 "suffix" in
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
+          assemble_ (bpush "x" "prefix") "left" "middle" "right" "suffix"
         ) else (
-          "r" <- ("prefix", "left_deque", "middle", "right_deque", "suffix");;
-          SOME (ref ("prefix", "left_deque", "middle", "right_deque", bpush "x" "suffix"))
+          (* NOTE(Juliette): pas dans le OCaml, ne fait rien d'utile *)
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
+          assemble_ bempty empty bempty empty (bpush "x" "suffix")
         )
       ) else (
-        (* normal mode *)
-        if: bsize "prefix" = #6%nat then (
-          let:2 ("prefix", "x6") := beject "prefix" in
-          let:2 ("prefix", "x5") := beject "prefix" in
-          let: "prefix'" := bpush "x5" (bpush "x6" empty_buffer) in
-          let: "left_deque" := "push" ("prefix'", empty, empty_buffer) "left_deque" in
-          "r" <- ( "prefix", "left_deque", "middle", "right_deque", "suffix" );;
-          SOME (ref (bpush "x" "prefix", "left_deque", "middle", "right_deque", "suffix"))
+        if: bhas_length_6 "prefix" then (
+          let:2 ("prefix", "prefix'") := bsplit642 "prefix" in
+          let: "left" := "push" (abuffer "prefix'") "left" in
+          "r" <- ( "prefix", "left", "middle", "right", "suffix" );;
+          assemble_ (bpush "x" "prefix") "left" "middle" "right" "suffix"
         ) else
-          "r" <- ("prefix", "left_deque", "middle", "right_deque", "suffix");;
-          SOME (ref (bpush "x" "prefix", "left_deque", "middle", "right_deque", "suffix"))
+          (* NOTE(Juliette): pas dans le OCaml, ne fait rien d'utile *)
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
+          assemble_ (bpush "x" "prefix") "left" "middle" "right" "suffix"
       )
     end.
 
-  Corollary inject : val. Admitted.
+  Definition inject : val :=
+    rec: "inject" "x" "d" :=
+    tick #();;
+    match: "d" with
+      NONE => asingleton "x"
+    | SOME "r" =>
+      let:5 ("prefix", "left", "middle", "right", "suffix") := !"r" in
+      if: bis_empty "middle" then (
+        if: bhas_length_8 "suffix" then (
+          let:3 ("prefix", "middle", "suffix") := bsplit8 "suffix" in
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
+          assemble_ "prefix" "left" "middle" "right" (binject "suffix" "x")
+        ) else (
+          assemble_ bempty empty bempty empty (binject "suffix" "x")
+        )
+      ) else (
+        if: bhas_length_6 "suffix" then (
+          let:2 ("suffix'", "suffix") := bsplit624 "suffix" in
+          let: "right" := "inject" "right" (abuffer "suffix") in
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
+          assemble_ "prefix" "left" "middle" "right" (binject "suffix" "x")
+        ) else (
+          assemble_ "prefix" "left" "middle" "right" (binject "suffix" "x")
+        )
+      )
+    end.
 
   Definition dconcat : val :=
     λ: "d1" "d2",
@@ -236,174 +429,278 @@ Section algorithms.
     match: "d2" with NONE => "d1"
     | SOME "r2" =>
     let:5 ("pr1", "ld1", "md1", "rd1", "sf1") := !"r1" in
-    if: bsize "md1" = #0%nat then push_whole_buffer push "sf1" "d2" else
     let:5 ("pr2", "ld2", "md2", "rd2", "sf2") := !"r2" in
-    if: bsize "md2" = #0%nat then inject_whole_buffer inject "d1" "sf2" else
-    let:2 ("y", "pr2'") := bpop "pr2" in
-    let:2 ("sf1'", "x") := beject "sf1" in
-    let: "middle" := bpush "x" (bpush "y" empty_buffer) in
-    let:2 ("s1'", "s1''") := partition_buffer_left "sf1'" in
-    let: "ld1'" := inject "ld1" ("md1", "rd1", "s1'") in
-    let: "ld1''" := if: bsize "s1''" = #0%nat then "ld1'"
-      else inject "ld1'" ("s1''", empty, empty_buffer) in
-    let:2 ("p2'", "p2''") := partition_buffer_right "pr2'" in
-    let: "rd2'" := push ("p2''", "ld2", "md2") "rd2" in
-    let: "rd2''" := if: bsize "p2'" = #0%nat then "rd2'"
-      else push ("p2'", empty, empty_buffer) "rd2'" in
-    SOME (ref ("pr1", "ld1''", "middle", "rd2''", "sf2"))
+    if: bis_empty "md1" then bfold_right push "sf1" "d2" else
+    if: bis_empty "md2" then bfold_left inject "d1" "sf2" else
+      let:2 ("sf1", "x1") := beject "sf1" in
+      let:2 ("x2", "pr2") := bpop "pr2" in
+      let: "middle" := bdoubleton "x1" "x2" in
+      let:2 ("sf1a", "sf1b") := bsplit23l "sf1" in
+      let: "ld1" := inject "ld1" (atriple_ "md1" "rd1" "sf1a") in
+      let: "ld1" :=
+        if: bis_empty "sf1b" then "ld1"
+        else inject "ld1" (abuffer "sf1b")
+      in
+      let:2 ("pr2a", "pr2b") := bsplit23r "pr2" in
+      let: "rd2" := push (atriple_ "pr2b" "ld2" "md2") "rd2" in
+      let: "rd2" :=
+        if: bis_empty "pr2a" then "rd2"
+        else push (abuffer "pr2a") "rd2"
+      in
+      assemble_ "pr1" "ld1" "middle" "rd2" "sf2"
     end end.
 
+  Definition naive_pop_safe : val :=
+    λ: "f",
+      let:5 ("p", "_", "m", "_", "_") := "f" in
+      (bis_empty "m") || (#3%nat < blength "p").
+
   Definition naive_pop : val :=
-    λ: "d",
-    let:5 ("pr", "ld", "md", "rd", "sf") := "d" in
-    if: bsize "md" = #0%nat then (
+    λ: "f",
+    let:5 ("pr", "ld", "md", "rd", "sf") := "f" in
+    if: bis_empty "md" then (
       let:2 ("x", "sf'") := bpop "sf" in
-      ("x", SOME (ref ("pr", "ld", "md", "rd", "sf'")))
+      ("x", assemble "pr" "ld" "md" "rd" "sf'")
     ) else (
       let:2 ("x", "pr'") := bpop "pr" in
-      ("x", SOME (ref ("pr'", "ld", "md", "rd", "sf")))
+      ("x", assemble_ "pr'" "ld" "md" "rd" "sf")
     ).
 
   Definition inspect_first : val :=
-    λ: "d", Fst (naive_pop "d").
+    λ: "f",
+    let:5 ("pr", "_", "md", "_", "sf") := "f" in
+    if: bis_empty "md" then bfirst "sf" else bfirst "pr".
 
-  (* TODO: lookup actual not *)
-  Let not : val := λ: "b", if: "b" then (#0 = #1) else (#0 = #0).
+  Definition prepare_pop_case_1 : val :=
+    λ: "f", λ: "t", λ: "left",
+    let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+    let:3 ("first", "child", "last") := "t" in
 
-  Definition first_nonempty : val :=
-    λ: "tr",
-      let:3 ("first", "middle", "last") := "tr" in
-      if: not (bsize "first" = #0%nat)%E
-        then SOME "first"
-      else if: not (bsize "last" = #0%nat)
-        then SOME "last"
-      else NONE.
+    if: bhas_length_3 "first" then (
+      let:2 ("prefix", "first") := bmove_left_1_33 "prefix" "first" in
+      let: "t" := atriple_ "first" "child" "last" in
+      let: "left" := push "t" "left" in
+      ("prefix", "left", "middle", "right", "suffix")
+    ) else (
+      let: "prefix" := bconcat32 "prefix" "first" in
+      if: bis_empty "child" && bis_empty "last" then (
+        ("prefix", "left", "middle", "right", "suffix")
+      ) else (
+        let: "t" := abuffer "last" in
+        let: "left" := "push" "t" "left" in
+        let: "left" := dconcat "child" "left" in
+        ("prefix", "left", "middle", "right", "suffix")
+      )
+    ).
+
+  Definition prepare_pop_case_2 : val :=
+    λ: "f", λ: "t", λ: "right",
+    let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+    let:3 ("first", "child", "last") := "t" in
+    if: bhas_length_3 "first" then (
+      let:3 ("prefix", "middle", "first") := bdouble_move_left "prefix" "middle" "first" in
+      let: "t" := atriple_ "first" "child" "last" in
+      let: "right" := push "t" "right" in
+      ("prefix", "left", "middle", "right", "suffix")
+    ) else (
+      let: "prefix" := bconcat32 "prefix" "middle" in
+      let: "middle" := "first" in
+      if: (bis_empty "child") && bis_empty "last" then (
+        ("prefix", "left", "middle", "right", "suffix")
+      ) else (
+        let: "t" := abuffer "last" in
+        let: "right" := push "t" "right" in
+        let: "right" := dconcat "child" "right" in
+        ("prefix", "left", "middle", "right", "suffix")
+      )
+    ).
+
+  (* NOTE(Juliette): inline mutually recursive functions *)
+  Definition pop_nonempty : val :=
+    rec: "pop_nonempty" "r" :=
+    tick #();;
+    let: "f" := !"r" in
+    if: naive_pop_safe "f" then naive_pop "f" else
+    let: "f" := (* prepare_pop "f" *)
+      let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+      match: "left" with
+        SOME "left" =>
+          let:2 ("t", "left") := (* pop_triple "left" *)
+            let: "f" := !"left" in
+            let: "t" := inspect_first "f" in
+            let:3 ("first", "child", "last") := "t" in
+            if: ~(bis_empty "child") || bhas_length_3 "first"
+              then naive_pop "f"
+              else "pop_nonempty" "r"
+          in
+          prepare_pop_case_1 "f" "t" "left"
+        | NONE =>
+      match: "right" with
+        SOME "right" =>
+          let:2 ("t", "right") := (* pop_triple "right" *)
+            let: "f" := !"right" in
+            let: "t" := inspect_first "f" in
+            let:3 ("first", "child", "last") := "t" in
+            if: ~(bis_empty "child") || bhas_length_3 "first"
+              then naive_pop "f"
+              else "pop_nonempty" "r"
+          in
+          prepare_pop_case_2 "f" "t" "right"
+        | NONE =>
+          if: bhas_length_3 "suffix" then (
+            let: "suffix" := bconcat323 "prefix" "middle" "suffix" in
+            let: "middle" := bempty in
+            let: "prefix" := bempty in
+            ("prefix", "left", "middle", "right", "suffix")
+          ) else (
+            let:3 ("prefix", "middle", "suffix") := bdouble_move_left "prefix" "middle" "suffix" in
+            ("prefix", "left", "middle", "right", "suffix")
+          )
+      end end
+    in
+      "r" <- "f";;
+      naive_pop "f"
+    .
 
   Definition pop : val :=
-    rec: "pop" "d" :=
-    tick #();;
-    match: "d" with NONE => "unreachable"
-    | SOME "ptr" =>
-    let: "d" := !"ptr" in
-    let:5 ("prefix", "left", "middle", "right", "suffix") := "d" in
-    let: "d'" :=
-    if: (bsize "middle" = #0%nat) || not (bsize "prefix" = #3%nat) then "d" else (
-      (* assert: bsize "prefix" = #3%nat *)
-      match: "left" with
-        SOME "leftp" =>
-        let: "left" := !"left" in
-        let: "t" := inspect_first "left" in
-        let:2 ("t", "l") :=
-          let:3 ("first", "child", "last") := "t" in
-          let: "fn_result" := first_nonempty "t" in
-          match: "fn_result" with
-            SOME "b" =>
-            if: bsize "b" = #3%nat || ("child" = NONE) then
-              naive_pop "left"
-            else
-              "pop" "leftp"
-          | NONE => "UNREACHABLE"
-          end in
-        let:3 ("x", "d'", "y") := "t" in
-        let: "x_len" := bsize "x" in
-        let: "y_len" := bsize "y" in
-        if: "x_len" = #3%nat then (
-          let:2 ("a", "x'") := bpop "x" in
-          let: "p'" := binject "prefix" "a" in
-          let: "triple" := ("x'", "d'", "y") in
-          let: "ld'" := push "triple" "l" in
-          ("p'", "ld'", "middle", "right", "suffix")
-        ) else if: "x_len" = #2%nat then (
-          let: "p'" := inject_whole_buffer inject "prefix" "x" in
-          if: ("d'" = NONE) && (bsize "y" = #0%nat) then
-            ("p'", "l", "middle", "right", "suffix")
-          else
-            let: "triple" := ("y", empty, empty_buffer) in
-            let: "l'" := dconcat "d'" (push "triple" "l") in
-            ("p'", "l'", "middle", "right", "suffix")
-        ) else if: ("x_len" = #0%nat) && ("y_len" = #3%nat) then (
-          (* x is empty therefore d' is empty *)
-          let:2 ("a", "y'") := bpop "y" in
-          let: "p'" := binject "prefix" "a" in
-          let: "triple" := ("x", "d'", "y'") in
-          let: "ld'" := push "triple" "l" in
-          ("p'", "ld'", "middle", "right", "suffix")
-        ) else if: ("x_len" = #0%nat) && ("y_len" = #2%nat) then (
-          let: "p'" := inject_whole_buffer inject "prefix" "y" in
-          ("p'", "l", "middle", "right", "suffix")
-        ) else
-          "UNREACHABLE"
-      | NONE =>
-        match: "right" with
-          SOME "rightp" =>
-          let: "right" := !"rightp" in
-          let: "t" := inspect_first "right" in
-          let:2 ("t", "r") :=
-            let:3 ("first", "child", "last") := "t" in
-            let: "fn_result" := first_nonempty "t" in
-            match: "fn_result" with
-              SOME "b" =>
-              if: (bsize "b" = #3%nat) || not ("child" = NONE) then
-                naive_pop "right"
-              else
-                "pop" "rightp"
-            | NONE => "UNREACHABLE"
-            end in
-          let:3 ("x", "d'", "y") := "t" in
-          let: "x_len" := bsize "x" in
-          let: "y_len" := bsize "y" in
-          if: "x_len" = #3%nat then (
-            let:2 ("a", "m") := bpop "middle" in
-            let: "p" := binject "prefix" "a" in
-            let:2 ("b", "x'") := bpop "x" in
-            let: "m'" := binject "m" "b" in
-            let: "triple" := ("x'", "d'", "y") in
-            let: "r'" := push "triple" "r" in
-            ("p", "left", "m'", "r'", "suffix")
-          ) else if: "x_len" = #2%nat then (
-            let: "p" := inject_whole_buffer binject "prefix" "middle" in
-            let: "r'" :=
-              if: ("d'" = NONE) && (bsize "y" = #0%nat) then
-                "r"
-              else
-                let: "triple" := ("y", empty, empty_buffer) in
-                dconcat "d'" (push "triple" "r")
-            in
-            ("p", "left", "x", "r'", "suffix")
-          ) else if: ("x_len" = #0%nat) && ("y_len" = #3%nat) then (
-            (* x is empty therefore d' is empty too *)
-            let:2 ("a", "m") := bpop "middle" in
-            let: "p" := binject "prefix" "a" in
-            let:2 ("b", "y'") := bpop "y" in
-            let: "m'" := binject "m" "b" in
-            let: "triple" := ("x", "d'", "y'") in
-            let: "r'" := push "triple" "r" in
-            ("p", "left", "m'", "r'", "suffix")
-          ) else if: ("x_len") = #0%nat && ("y_len" = #2%nat) then (
-            let: "p" := inject_whole_buffer binject "prefix" "middle" in
-            ("p", "left", "y", "right", "suffix")
-          ) else
-            "UNREACHABLE"
-        | NONE =>
-          (* is_empty left, is_empty right *)
-          if: bsize "suffix" = #3%nat then
-            let: "suffix'" := inject_whole_buffer binject "prefix" (inject_whole_buffer binject "middle" "suffix") in
-            (empty_buffer, "left", empty_buffer, "right", "suffix'")
-          else
-            let:2 ("a", "m") := bpop "middle" in
-            let: "prefix'" := binject "prefix" "a" in
-            let:2 ("a", "suffix'") := bpop "suffix" in
-            let: "middle'" := binject "m" "a" in
-            ("prefix'", "left", "middle'", "right", "suffix'")
-        end
-      end
-    )
-    in
-    (* TODO: fix OCaml code *)
-    "ptr" <- "d'";;
-    naive_pop "d'"
-    end.
+    λ: "d",
+      match: "d" with
+        NONE => "explosion"
+      | SOME "r" => pop_nonempty "r" end.
 
-  Definition eject : val. Admitted.
+  Definition antinormalize : val :=
+    λ: "t",
+      let:3 ("first", "child", "last") := "t" in
+      if: bis_empty "last" then (
+        let: "first" := bempty in
+        let: "last" := "first" in
+        ("first", "child", "last")
+      ) else "t".
+
+  Definition naive_eject_safe : val :=
+    λ: "f",
+      let:5 ("_", "_", "m", "_", "s") := "f" in
+      (bis_empty "m") || (#3%nat < blength "s").
+
+  Definition naive_eject : val :=
+    λ: "f",
+      let:5 ("p", "l", "m", "r", "s") := "f" in
+      let:2 ("s", "x") := beject "s" in
+      (assemble "p" "l" "m" "r" "s", "x").
+
+  Definition inspect_last : val :=
+    λ: "f",
+      let:5 ("_", "_", "_", "_", "s") := "f" in
+      blast "s".
+
+  Definition eject_nonempty : val :=
+    rec: "eject_nonempty" "r" :=
+    let: "f" := !"r" in
+    if: naive_eject_safe "f" then naive_eject "f" else
+    let: "f" := (* prepare_eject "f" *)
+      let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+      match: "right" with
+        SOME "right" =>
+          let:2 ("right", "t") := (* eject_triple "right" *)
+            let: "f" := !"right" in
+            let: "t" := inspect_last "f" in
+            let:2 ("d", "t") :=
+              let:3 ("first", "child", "last") := "t" in
+              if: ~bis_empty "child" || bhas_length_3 "last"
+              || (bis_empty "last" && bhas_length_3 "first")
+                then naive_eject "f"
+                else "eject_nonempty" "r"
+              in ("d", antinormalize "t")
+          in
+          let:3 ("first", "child", "last") := "t" in
+          if: bhas_length_3 "last" then (
+            let:2 ("last", "suffix") := bmove_right_1_33 "last" "suffix" in
+            let: "t" := atriple "first" "child" "right" in
+            let: "right" := inject "right" "t" in
+            ("prefix", "left", "middle", "right", "suffix")
+          ) else (
+            let: "suffix" := bconcat23 "last" "suffix" in
+            if: bis_empty "child" && bis_empty "first" then (
+              ("prefix", "left", "middle", "right", "suffix")
+            ) else (
+              let: "t" := abuffer "first" in
+              let: "right" := inject "right" "t" in
+              let: "right" := dconcat "right" "child" in
+              ("prefix", "left", "middle", "right", "suffix")
+            )
+          )
+      | NONE =>
+      match: "left" with
+        SOME "left" =>
+          let:2 ("left", "t") := (* eject_triple "left" *)
+            let: "f" := !"right" in
+            let: "t" := inspect_last "f" in
+            let:2 ("d", "t") :=
+              let:3 ("first", "child", "last") := "t" in
+              if: ~bis_empty "child" || bhas_length_3 "last"
+              || (bis_empty "last" && bhas_length_3 "first")
+                then naive_eject "f"
+                else "eject_nonempty" "r"
+              in ("d", antinormalize "t")
+          in
+          let:3 ("first", "child", "last") := "t" in
+          if: bhas_length_3 "last" then (
+            let:3 ("last", "middle", "suffix") := bdouble_move_right "last" "middle" "suffix" in
+            let: "t" := atriple "first" "child" "last" in
+            let: "left" := inject "left" "t" in
+            ("prefix", "left", "middle", "right", "suffix")
+          ) else (
+            let: "suffix" := bconcat23 "middle" "suffix" in
+            let: "middle" := "last" in
+            if: bis_empty "child" && bis_empty "first" then (
+              ("prefix", "left", "middle", "right", "suffix")
+            ) else (
+              let: "t" := abuffer "first" in
+              let: "left" := inject "left" "t" in
+              let: "left" := dconcat "left" "child" in
+              ("prefix", "left", "middle", "right", "suffix")
+            )
+          )
+      | NONE =>
+        if: bhas_length_3 "prefix" then (
+          let: "suffix" := bconcat323 "prefix" "middle" "suffix" in
+          let: "middle" := bempty in
+          let: "prefix" := bempty in
+          ("prefix", "left", "middle", "right", "suffix")
+        ) else (
+          let:3 ("prefix", "middle", "suffix") := bdouble_move_right "prefix" "middle" "suffix" in
+          ("prefix", "left", "middle", "right", "suffix")
+        )
+      end end
+    in
+    "r" <- "f"
+    naive_eject "f"
+    .
+
+  Definition eject : val :=
+    λ: "d",
+      match: "d" with
+        NONE => "dragon à trois têtes"
+      | SOME "r" => eject_nonempty "r"
+      end.
 
 End algorithms.
+
+
+Section lemmas.
+
+  Context `{heapGS Σ}.
+
+  Definition list_factor {α} : list α -> list α -> Prop :=
+    λ ℓ ℓ', ∃ p s, ℓ' = p ++ ℓ ++ s.
+
+  Notation "ℓ ⊑ ℓ'" := (list_factor ℓ ℓ').
+
+  (* NOTE(Juliette): variant for sep_L2 *)
+  Lemma list_factor_sep : forall α (ℓ : list α) ℓ' (ϕ : α -> iProp Σ),
+    ℓ ⊑ ℓ' ->
+    ([∗list] x ∈ ℓ', ϕ x) ⊢ [∗list] x ∈ ℓ, ϕ x.
+  Proof.
+  Abort.
+
+End lemmas.
