@@ -533,4 +533,23 @@ Section proofs.
       + by iApply (IHL M H2).
   Qed.
 
+  Lemma abuffer_spec : forall n k o b,
+    n ∈ [2; 3] -> {{{ buffer n o b }}} abuffer b {{{ t, RET t; triple π k o t }}}.
+  Proof.
+    iIntros (n k o b Hn ψ) "Hb Hψ".
+    rewrite /abuffer /atriple_.
+    wp_pures.
+    iApply "Hψ".
+    rewrite triple_unfold.
+    iExists b, NONEV, bempty, o, [], [], n, 0, [].
+    iFrame.
+    iModIntro.
+    iSplitR. iPureIntro. constructor; list_elem_of.
+    repeat doneL.
+    iSplitL. rewrite isDeque_unfold. by iLeft.
+    iSplitL. by iApply bempty_spec.
+    repeat doneL.
+    iPureIntro. rewrite !app_nil_r //=.
+  Qed.
+
 End proofs.

@@ -45,8 +45,8 @@ Section assumptions.
       {{{ buffer n o b }}} bpush x b {{{ b', RET b'; buffer (n+1) (⋅x++o) b' }}}.
 
     Axiom bpop : val.
-    Axiom bpop_spec : forall x n o b,
-      {{{ buffer (n+1) (⋅x++o) b }}} bpop b {{{ b', RET (x, b')%V; buffer n o b' }}}.
+    Axiom bpop_spec : forall n o b,
+      {{{ buffer (n+1) o b }}} bpop b {{{ b' x o', RET (x, b')%V; buffer n o' b' ∗ ⌜ o = ⋅x ++ o' ⌝ }}}.
 
     Axiom bfirst : val.
     Axiom bfirst_spec : forall x n o b,
@@ -57,8 +57,8 @@ Section assumptions.
       {{{ buffer n o b }}} binject b x {{{ b', RET b'; buffer (n+1) (o++⋅x) b }}}.
 
     Axiom beject : val.
-    Axiom beject_spec : forall x n o b,
-      {{{ buffer (n+1) (o++⋅x) b }}} beject b {{{ b', RET (b', x)%V; buffer n o b' }}}.
+    Axiom beject_spec : forall n o b,
+      {{{ buffer (n+1) o b }}} beject b {{{ b' o' x, RET (b', x)%V; buffer n o' b' ∗ ⌜ o = o' ++ ⋅x ⌝ }}}.
 
     Axiom blast : val.
     Axiom blast_spec : forall x n o b,
@@ -139,14 +139,14 @@ Section assumptions.
       {{{ buffer n o b ∗ ⌜ n ∈ [2..6] ⌝ }}}
         bsplit23l b
       {{{ b1 b2 o1 o2 n1 n2, RET (b1, b2)%V;
-          buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [2; 3] /\ n2 ∈ [0; 2; 3] ⌝ }}}.
+          buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [2; 3] /\ n2 ∈ [0; 2; 3] /\ o = o1 ++ o2 ⌝ }}}.
 
     Axiom bsplit23r : val.
     Axiom bsplit23r_spec : forall n o b,
       {{{ buffer n o b ∗ ⌜ n ∈ [2..6] ⌝ }}}
         bsplit23r b
       {{{ b1 b2 o1 o2 n1 n2, RET (b1, b2)%V;
-          buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [0; 2; 3] /\ n2 ∈ [2; 3] ⌝ }}}.
+          buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [0; 2; 3] /\ n2 ∈ [2; 3] /\ o = o1 ++ o2 ⌝ }}}.
 
     Axiom bsplit8 : val.
     Axiom bsplit8_spec : forall o b,

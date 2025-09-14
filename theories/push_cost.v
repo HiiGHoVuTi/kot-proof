@@ -110,6 +110,7 @@ Section proof.
             ℓisDeque ℓ'.
             iExact "Hℓ'".
         * wp_pures.
+          apply bool_decide_eq_false_1 in Heqb0.
           wp_bind (#ℓ <- _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           iApply (wp_wand with "[DONE ι O]").
@@ -128,7 +129,7 @@ Section proof.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
           -- iExists bempty, empty, bempty, empty, sf',
-              [], [], [], [], (⋅x ++ oD),
+              [], [], [], [], (⋅x ++ sfC),
               0, 0, (S kSf), [], [].
             inversion cfg; [| exfalso; lia ].
             iDestruct (buffer_length with "Hpr") as "%HlprC". destruct prC; [| inversion HlprC].
@@ -139,12 +140,17 @@ Section proof.
             iDestruct (big_sepL2_nil_inv_l with "Hrtr") as "->".
             iFrame.
             doneL.
-            iSplitR. [ iPureIntro; constructor; invert_all_in; list_elem_of |].
+            iSplitR; [ iPureIntro; constructor; invert_all_in; list_elem_of |].
             iSplitL; [ iApply (three_time_enough with "ι") |].
+            iSplitR. by iApply bempty_spec.
+            iSplitR. by isEmptyDeque.
+            iSplitR. by iApply bempty_spec.
+            iSplitR. by isEmptyDeque.
+            assert (S kSf = kSf + 1) as -> by lia.
             doneL.
             aac_normalise in Heq.
             rewrite Heq.
-            do 6 doneL.
+            repeat doneL.
             iPureIntro; simpl; aac_reflexivity.
           -- wp_pures.
             iApply "Hψ".
@@ -152,30 +158,23 @@ Section proof.
             ℓisDeque ℓ'.
             iExact "Hℓ'".
       + apply bool_decide_eq_false_1 in Heqb as Heqmd.
-        apply bool_decide_code_false in Heqb as Heqmd2.
-        rewrite Heqmd2.
         wp_pures.
-        wp_apply (bsize_better_spec with "Hpr") as "_".
+        wp_apply (bhas_length_6_spec with "Hpr") as "_".
         wp_pures.
         destruct (bool_decide (kPr = 6)) eqn:?.
         * apply bool_decide_eq_true_1 in Heqb0 as ->.
           wp_pures.
-          wp_apply (beject_spec2 with "Hpr") as "%b6 %x6 %o6 (Hpr' & ->)".
-          wp_pures.
-          wp_apply (beject_spec2 with "Hpr'") as "%pr2 %x5 %o5 (#Hpr2 & ->)".
-          wp_pures.
-          wp_apply (bpush_spec2) as "%bs6 Hbp".
-            { by iApply empty_is_buffer_at. }
-          wp_apply (bpush_spec2 with "Hbp") as "%pr' #Hpr'".
-          do 4 wp_pure.
-          iSpecialize ("iH" $! (pr', NONEV, empty_buffer)%V ld ltr (S depth)).
+          wp_apply (bsplit642_spec with "Hpr") as "%b1 %b2 %o1 %o2 (#Ho1 & #Ho2 & %Heq12)".
+          rewrite /abuffer /atriple_.
+          iSpecialize ("iH" $! (b2, NONEV, bempty)%V ld ltr (S depth)).
           iDestruct (time_combine with "[τ pot]") as "τ". by (rewrite /=; iFrame).
           iDestruct (split_time time_for_push with "τ") as "[ι τ]".
             { destruct (buffer_colour kSf); rewrite /=; auto. }
-          wp_apply ("iH" with "[ι O]") as "%ld' [#Hld' O]"; iClear "iH". {
+          do 16 wp_pure.
+          wp_smart_apply ("iH" with "[ι O]") as "%ld' [#Hld' O]"; iClear "iH". {
             iFrame "#".
             (* rewrite /isElement triple_unfold !app_nil_r. *)
-            iFrame.
+            by iFrame.
           }
           wp_pures.
           wp_bind (#ℓ <- _)%E.
@@ -186,10 +185,9 @@ Section proof.
           {
             iApply ("DONE" with "[ι]"); [| iFrame].
             iNext.
-            iExists pr2, ld', md, rd, sf,
-              o5, ([⋅x5 ++ ⋅x6] ++ ldC), mdC, rdC, sfC,
-              4, 2, kSf, (⋅(pr', NONEV, empty_buffer)%V ++ ltr), rtr.
-            rewrite !app_nil_r.
+            iExists b1, ld', md, rd, sf,
+              o1, (⋅o2 ++ ldC), mdC, rdC, sfC,
+              4, 2, kSf, (⋅(b2, NONEV, bempty)%V ++ ltr), rtr.
             iFrame "#".
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; list_elem_of. }
@@ -201,13 +199,13 @@ Section proof.
               { iApply (big_sepL2_app with "[Hltr]").
                 - iApply (big_sepL2_singleton).
                   iNext. rewrite triple_unfold.
-                  iExists pr', NONEV, empty_buffer,
-                    (⋅x5 ++ ⋅x6), [], [],
+                  iExists b2, NONEV, bempty,
+                    o2, [], [],
                     2, 0, [].
                   iSplitR. { iPureIntro; eapply left_leaning; list_elem_of.  }
                   do 2 doneL.
                   iSplitR. isEmptyDeque.
-                  iSplitR. iApply empty_is_buffer_at.
+                  iSplitR. iApply bempty_spec.
                   doneL.
                   iPureIntro; simpl; aac_reflexivity.
                 - iApply (big_sepL2_mono with "Hltr").
@@ -215,19 +213,20 @@ Section proof.
               }
             iSplitR. iApply (big_sepL2_mono with "Hrtr"). by auto.
             iPureIntro.
-            rewrite Heq /= !cons_middle.
+            rewrite Heq Heq12 /=.
             aac_reflexivity.
           }
           iIntros (unit) "O".
+          rewrite /assemble_.
           wp_pures; clear unit.
-          wp_apply (bpush_spec2 with "Hpr2") as "%pr3 #Hpr3".
+          wp_apply (bpush_spec with "Ho1") as "%pr3 #Hpr3".
           wp_pures.
           iDestruct (split_time (5 ⋄ kSf) with "τ") as "[ι τ]".
             { invert_all_in; rewrite //=; auto. }
           wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'". {
             iExists pr3, ld', md, rd, sf,
-              (⋅x ++ o5), ([⋅x5 ++ ⋅x6] ++ ldC), mdC, rdC, sfC,
-              5, 2, kSf, (⋅ (pr', NONEV, empty_buffer)%V ++ ltr), rtr.
+              (⋅x ++ o1), (⋅o2 ++ ldC), mdC, rdC, sfC,
+              5, 2, kSf, (⋅ (b2, NONEV, bempty)%V ++ ltr), rtr.
             iFrame "#".
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; list_elem_of. }
@@ -240,13 +239,13 @@ Section proof.
               { iApply (big_sepL2_app with "[Hltr]").
                 - iApply (big_sepL2_singleton).
                   iNext. rewrite triple_unfold.
-                  iExists pr', NONEV, empty_buffer,
-                    (⋅x5 ++ ⋅x6), [], [],
+                  iExists b2, NONEV, bempty,
+                    o2, [], [],
                     2, 0, [].
                   iSplitR. { iPureIntro; eapply left_leaning; list_elem_of.  }
                   do 2 doneL.
                   iSplitR. isEmptyDeque.
-                  iSplitR. iApply empty_is_buffer_at.
+                  iSplitR. iApply bempty_spec.
                   doneL.
                   iPureIntro; simpl; aac_reflexivity.
                 - iApply (big_sepL2_mono with "Hltr").
@@ -254,7 +253,7 @@ Section proof.
               }
             iSplitR. iApply (big_sepL2_mono with "Hrtr"). by auto.
             iPureIntro.
-            rewrite Heq /= !cons_middle.
+            rewrite Heq Heq12 /=.
             aac_reflexivity.
           }
           wp_pures.
@@ -262,7 +261,6 @@ Section proof.
           iFrame.
           ℓisDeque ℓ'. iExact "Hℓ'".
         * apply bool_decide_eq_false_1 in Heqb0 as prNotFull.
-          apply bool_decide_code_false in Heqb0 as ->.
           wp_pures.
           wp_bind (#ℓ <- _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
@@ -275,7 +273,8 @@ Section proof.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
-          wp_apply (bpush_spec2 with "Hpr") as "%pr' #Hpr'".
+          wp_apply (bpush_spec with "Hpr") as "%pr' #Hpr'".
+          rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
@@ -284,6 +283,7 @@ Section proof.
               (⋅x ++ prC), ldC, mdC, rdC ,sfC,
               (S kPr), kMd, kSf, ltr, rtr.
             inversion cfg; [ exfalso; lia |].
+            assert (S kPr = kPr + 1) as -> by lia.
             iFrame "#".
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; invert_all_in; list_elem_of. }
@@ -323,6 +323,7 @@ Section proof.
     {{{ d', RET d'; IsDeque π (oD ++ ⋅x) d' ∗ Token π 0 }}}.
   Admitted.
 
+  (*
   (* NOTE(Juliette): Marked as 0 time cost, but runs in ⏱ (8 * time_for_push) constant time *)
   Corollary push_whole_spec : forall lvl b oB d oD size,
     {{{ buffer size oB b ∗ isDeque π lvl oD d ∗ Token π lvl }}}
@@ -343,5 +344,6 @@ Section proof.
       inject_whole_buffer inject d b
     {{{ d', RET d'; isDeque π lvl (oD ++ oB) d' ∗ Token π lvl }}}.
   Admitted.
+  *)
 
 End proof.
