@@ -2,9 +2,11 @@
 
 theories/shared_ref.v
 theories/tick.v
+theories/fold.v
 theories/common.v
 theories/push_cost.v
 theories/concat_cost.v
 theories/pop_cost.v
+theories/pop_cost_lemmas.v
 theories/deque_cost.v
 theories/deque_safe.v

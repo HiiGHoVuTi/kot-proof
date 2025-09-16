@@ -15,12 +15,34 @@ Section proof.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Variable π : gname.
 
+  Lemma abuffer_spec : forall n k o b,
+    {{{ buffer k o b ∗ ⌜ k ∈ [2; 3] ⌝ }}}
+      abuffer b
+    {{{ t, RET t; triple π n o t  }}}.
+  Proof.
+    iIntros (n k o b ψ) "(#Hb & %Hk) Hψ".
+    rewrite /abuffer.
+    wp_pures.
+    rewrite /atriple_.
+    wp_pures.
+    iApply "Hψ".
+    iModIntro.
+    rewrite triple_unfold.
+    iExists b, NONEV, bempty, o, [], [], k, 0, [].
+    iSplit. iPureIntro; by easy_config.
+    repeat doneL.
+    iSplit. by isEmptyDeque.
+    iSplit. by iApply bempty_spec.
+    doneL.
+    iPureIntro.
+    rewrite !app_nil_r //.
+  Qed.
+
   Lemma push_spec_helper oD x d : forall depth,
     {{{ isDeque π depth oD d ∗ ⏱ time_for_push ∗ Token π depth }}}
       push x d
     {{{ d', RET d'; isDeque π depth (⋅x ++ oD) d' ∗ Token π depth }}}.
   Proof.
-  (*
     iLöb as "iH" forall (x d oD).
     iIntros (depth ψ) "(Hd & τ & O) Hψ".
     rewrite /push.
@@ -31,9 +53,9 @@ Section proof.
     rewrite {1} isDeque_unfold.
     iDestruct "Hd" as "[[-> ->] | (%ℓ & -> & #Hℓ)]".
     - wp_pures.
-      rewrite /singleton_deque. wp_pures.
+      rewrite /asingleton. wp_pures.
       wp_apply bpush_spec as "%b #Hb".
-        { iApply empty_is_buffer. }
+        { iApply bempty_spec. }
       wp_pures.
       wp_bind (ref _)%E.
       wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x))) as "%ℓ #Hℓ".
@@ -51,92 +73,68 @@ Section proof.
             & #Hpr & #Hld & #Hmd & #Hrd & #Hsf & #Hltr & #Hrtr & %Heq)]".
       wp_pures.
       wp_bind (if: _ then _ else _)%E.
-      wp_apply (bsize_better_spec with "Hmd") as "_".
+      wp_apply (bis_empty_spec with "Hmd") as "_".
       wp_pures.
       destruct (bool_decide (kMd = 0)) eqn:?.
       + apply bool_decide_eq_true_1 in Heqb as Heqmd.
-        apply bool_decide_code_true in Heqb as ->.
         wp_pures.
+        inversion cfg; [| exfalso; lia ].
+        iDestruct (buffer_length with "Hpr") as "%LprC".
+        destruct prC; [| inversion LprC].
+        iDestruct (buffer_length with "Hmd") as "%LmdC".
+        destruct mdC; [| inversion LmdC].
+        symmetry in H; rewrite (nil_length_inv _ H) in Heq |- *.
+        symmetry in H1; rewrite (nil_length_inv _ H1) in Heq |- *.
+        iDestruct (big_sepL2_nil_inv_l with "Hltr") as "->".
+        iDestruct (big_sepL2_nil_inv_l with "Hrtr") as "->".
         wp_bind (if: _ then _ else _)%E.
-        wp_apply (bsize_better_spec with "Hsf") as "_".
+        wp_apply (bhas_length_8_spec with "Hsf") as "_".
         wp_pures.
         destruct (bool_decide (kSf = 8)) eqn:?.
-        * apply bool_decide_eq_true_1 in Heqb as ->.
+        * apply bool_decide_eq_true_1 in Heqb0 as ->.
           wp_pures.
-          wp_apply (bpop_spec2 with "Hsf") as "%x1 %b1 %o1 (Hsf' & ->)".
+          wp_apply (bsplit8_spec with "Hsf") as "%b1 %b2 %b3 %o1 %o2 %o3 (#Hb1 & #Hb2 & #Hb3 & %HeqsfC)".
           wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x2 %b2 %o2 (Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x3 %b3 %o3 (Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpush_spec2) as "%bp3 Hbp".
-            { by iApply empty_is_buffer_at. }
-          wp_apply (bpush_spec2 with "Hbp") as "%bp2 Hbp".
-          wp_apply (bpush_spec2 with "Hbp") as "%pr' #Hpr'".
-          wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x4 %b4 %o4 (Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpop_spec2 with "Hsf'") as "%x5 %sf' %o5 (#Hsf' & ->)".
-          wp_pures.
-          wp_apply (bpush_spec2) as "%bp5 Hbm".
-            { by iApply empty_is_buffer_at. }
-          wp_apply (bpush_spec2 with "Hbm") as "%md' #Hmd'".
-          wp_pures.
-          rewrite !app_nil_r Heqmd.
           wp_bind (#ℓ <- _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           iApply (wp_wand with "[DONE ι O]").
           {
             iApply ("DONE" with "[ι]"); [| by iFrame].
             iNext.
-            iExists pr', empty, md', empty, sf',
-              (⋅x1 ++ ⋅x2 ++ ⋅x3), [], (⋅x4 ++ ⋅x5), [], o5,
+            iExists b1, ld, b2, rd, b3,
+              o1, [], o2, [], o3,
               3, 2, 3, [], [].
             iFrame. iFrame "#".
             doneL.
             iSplitR. by easy_config.
-            iSplitR. by isEmptyDeque.
-            iSplitR. by isEmptyDeque.
-            do 2 doneL.
-            inversion cfg; [| exfalso; lia].
-            iDestruct (empty_buffer_is_empty with "Hpr") as "->".
-            iDestruct (empty_buffer_is_empty with "Hmd") as "->".
-            destruct ldC; inversion H.
-            destruct rdC; inversion H1.
+            repeat doneL.
             iPureIntro.
             rewrite Heq //.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
           wp_bind (bpush _ _)%E.
-          wp_apply (bpush_spec2 with "Hpr'") as "%pr'' #Hpr''".
+          wp_apply (bpush_spec with "Hb1") as "%pr'' #Hpr''".
+          rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
           iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
           wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
-          -- iExists pr'', empty, md', empty, sf',
-              (⋅x ++ ⋅x1 ++ ⋅x2 ++ ⋅x3), [], (⋅x4 ++ ⋅x5), [], o5,
+          -- iExists pr'', ld, b2, rd, b3,
+              (⋅x ++ o1), [], o2, [], o3,
               4, 2, 3, [], [].
             iFrame. iFrame "#".
             doneL.
             iSplitR. by easy_config.
-            iSplitR. by isEmptyDeque.
-            iSplitR. by isEmptyDeque.
-            do 2 doneL.
-            inversion cfg; [| exfalso; lia].
-            iDestruct (empty_buffer_is_empty with "Hpr") as "->".
-            iDestruct (empty_buffer_is_empty with "Hmd") as "->".
-            destruct ldC; inversion H.
-            destruct rdC; inversion H1.
+            repeat doneL.
             iPureIntro.
-            rewrite Heq //.
+            rewrite Heq HeqsfC //.
           -- wp_pures.
             iApply "Hψ".
             iFrame.
             ℓisDeque ℓ'.
             iExact "Hℓ'".
-        * apply bool_decide_eq_false_1 in Heqb as sfNotFull.
-          apply bool_decide_code_false in Heqb as ->.
+        * apply bool_decide_eq_false_1 in Heqb0 as sfNotFull.
           wp_pures.
           wp_bind (#ℓ <- _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
@@ -150,59 +148,51 @@ Section proof.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
-          wp_apply (bpush_spec2 with "Hsf") as "%sf' #Hsf'".
+          wp_apply (bpush_spec with "Hsf") as "%sf' #Hsf'".
+          rewrite /assemble_.
           wp_pures.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
           wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
-          -- iExists pr, ld, md, rd, sf',
+          -- iExists bempty, NONEV, bempty, NONEV, sf',
               [], [], [], [], (⋅x ++ oD),
               0, 0, (S kSf), [], [].
-            inversion cfg; [| exfalso; lia ].
-            iDestruct (empty_buffer_is_empty with "Hpr") as "->".
-            iDestruct (empty_buffer_is_empty with "Hmd") as "->".
-            symmetry in H; rewrite (nil_length_inv _ H) in Heq |- *.
-            symmetry in H1; rewrite (nil_length_inv _ H1) in Heq |- *.
-            iDestruct (big_sepL2_nil_inv_l with "Hltr") as "->".
-            iDestruct (big_sepL2_nil_inv_l with "Hrtr") as "->".
+            assert (kSf + 1 = S kSf) as -> by lia.
             iFrame.
             doneL.
-            iSplitR; [ iPureIntro; constructor; invert_all_in |].
+            iSplitR; [ iPureIntro; constructor; invert_all_in; list_elem_of |].
             iSplitL; [ iApply (three_time_enough with "ι") |].
-            doneL.
+            iSplitR. by iApply bempty_spec.
+            iSplitR. by isEmptyDeque.
+            iSplitR. by iApply bempty_spec.
+            iSplitR. by isEmptyDeque.
             aac_normalise in Heq.
             rewrite Heq.
-            do 6 doneL.
+            repeat doneL.
             iPureIntro; simpl; aac_reflexivity.
-          -- wp_pures.
+          --
+            wp_pures.
             iApply "Hψ".
             iFrame.
             ℓisDeque ℓ'.
             iExact "Hℓ'".
       + apply bool_decide_eq_false_1 in Heqb as Heqmd.
         apply bool_decide_code_false in Heqb as Heqmd2.
-        rewrite Heqmd2.
         wp_pures.
-        wp_apply (bsize_better_spec with "Hpr") as "_".
+        wp_apply (bhas_length_6_spec with "Hpr") as "_".
         wp_pures.
         destruct (bool_decide (kPr = 6)) eqn:?.
         * apply bool_decide_eq_true_1 in Heqb0 as ->.
           wp_pures.
-          wp_apply (beject_spec2 with "Hpr") as "%b6 %x6 %o6 (Hpr' & ->)".
+          wp_apply (bsplit642_spec with "Hpr") as "%b1 %b2 %o1 %o2 (#Hb1 & #Hb2 & %HprC)".
           wp_pures.
-          wp_apply (beject_spec2 with "Hpr'") as "%pr2 %x5 %o5 (#Hpr2 & ->)".
-          wp_pures.
-          wp_apply (bpush_spec2) as "%bs6 Hbp".
-            { by iApply empty_is_buffer_at. }
-          wp_apply (bpush_spec2 with "Hbp") as "%pr' #Hpr'".
-          do 4 wp_pure.
-          iSpecialize ("iH" $! (pr', NONEV, empty_buffer)%V ld ltr (S depth)).
+          wp_apply (abuffer_spec with "[Hb2]") as "%t #Ht".
+            { iFrame "#". iPureIntro; list_elem_of. }
+          iSpecialize ("iH" $! t ld ltr (S depth)).
           iDestruct (time_combine with "[τ pot]") as "τ". by (rewrite /=; iFrame).
           iDestruct (split_time time_for_push with "τ") as "[ι τ]".
             { destruct (buffer_colour kSf); rewrite /=; auto. }
           wp_apply ("iH" with "[ι O]") as "%ld' [#Hld' O]"; iClear "iH". {
-            iFrame "#".
-            (* rewrite /isElement triple_unfold !app_nil_r. *)
-            iFrame.
+            iFrame "#"; iFrame.
           }
           wp_pures.
           wp_bind (#ℓ <- _)%E.

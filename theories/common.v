@@ -1,12 +1,12 @@
 
 From iris.heap_lang Require Import lang proofmode notation.
 Require Import List.
-From Deque Require Import tick.
+From Deque Require Import tick fold.
 
 (* Section notations *)
 Notation "⋅ x" := [x] (at level 60).
 Definition nonempty {A : Type} (x : list A) := ~(x = []).
-(* Notation x &in [n..m] := (n <= x /\ x <= m) ? *)
+(* Notation x ∈ [n..m] := (n <= x /\ x <= m) ? *)
 Notation "[4..6]" := [4; 5; 6].
 Notation "[3..6]" := [3; 4; 5; 6].
 Notation "[2..6]" := [2; 3; 4; 5; 6].
@@ -68,7 +68,9 @@ Section assumptions.
 
     (* TODO(Juliette): fold_left & fold_right *)
     Axiom bfold_right : val.
+    Axiom bfold_right_spec : forall n, has_fold_right_spec bfold_right (buffer n).
     Axiom bfold_left : val.
+    Axiom bfold_left_spec : forall n, has_fold_left_spec bfold_left (buffer n).
 
     Axiom bdoubleton : val.
     Axiom bdoubleton_spec : forall x y,
@@ -284,12 +286,13 @@ Section configurations.
     | pop_has_middle : forall p ld rd s, p ∈ [4..6] -> s ∈ [3..6] -> pop_configuration p ld 2 rd s.
 
   Inductive colour : Set :=
-    | green | red | very_red.
+    | very_green | green | red | very_red.
 
   Definition buffer_colour : nat -> colour :=
     λ n,
     match n with
     | 8 => very_red
+    | 0 => very_green
     | 3 | 6 => red
     | _ => green
     end.
@@ -300,7 +303,8 @@ End configurations.
 Notation "pre ⋄ suf" :=
   (match buffer_colour pre, buffer_colour suf with
   | _, very_red | red, red => 3
-  | red, green | green, red => 1
+  | very_green, _ => 0
+  | red, _ | _, red => 1
   | _, _ => 0
   end) (at level 60).
 
@@ -348,7 +352,7 @@ Section algorithms.
     if: bis_empty "m" && bis_empty "s" then
       empty
     else
-      assemble_ ("p", "l", "m", "r", "s").
+      assemble_ "p" "l" "m" "r" "s".
 
   Definition atriple_ : val :=
     λ: "f", λ: "c", λ: "l",

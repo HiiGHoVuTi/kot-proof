@@ -8,34 +8,52 @@ From AAC_tactics Require Import AAC.
 From AAC_tactics Require Import Instances.
 Import Instances.Lists.
 
-From Deque Require Import common tick shared_ref deque_cost push_cost concat_cost.
+From Deque Require Import common tick shared_ref deque_cost push_cost concat_cost pop_cost_lemmas.
 
 Section proof.
 
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
-  (* TODO: start here*)
-  Lemma pop_spec_helper oD x ℓ : forall depth,
+  Lemma pop_spec_helper oD x (ℓ : loc) : forall depth,
     {{{ isDeque π depth (⋅x ++ oD) (SOMEV #ℓ) ∗ ⏱ time_for_pop ∗ Token π depth }}}
-      pop (SOMEV #ℓ)
+      pop_nonempty (#ℓ)
     {{{ d', RET (x, d')%V; isDeque π depth oD d' ∗ Token π depth }}}.
   Proof.
     iIntros (depth ψ) "(Hd & τ & O) Hψ".
     rewrite isDeque_unfold.
-    rewrite /pop.
+    rewrite /pop_nonempty.
     iLöb as "iH" forall (ℓ oD x depth).
-    iDestruct "Hd" as "[[%H _] | (%ℓ' & -> & Hℓ)]". by inversion H.
+    iDestruct "Hd" as "[[%H _] | (%ℓ' & %Heqℓ & Hℓ)]". by inversion H.
+    inversion Heqℓ as [H]. rewrite -H. clear Heqℓ H ℓ'.
     wp_pures.
     iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
     wp_apply (tick_spec with "ι") as "_".
     wp_pures.
-    wp_apply (ssref_load_open with "[Hℓ O]") as "%d (O & πd & DONE)". by iFrame.
+    wp_apply (ssref_load_open with "[Hℓ O]") as "%d (O & πd & DONE)".
+      { by iFrame. }
+    iDestruct (safe_decidable depth (⋅x ++ oD) d with "πd") as "[Unsafe | Safe]".
+    wp_pures.
+    2: {
+      wp_pures.
+      (* NOTE(Juliette): pourquoi nommer la première hypothèse casse tout ????? je ne comprends rien *)
+      iDestruct "Safe" as "[Hsafe pop_safe]".
+      wp_bind (naive_pop_safe d)%E.
+      iApply (wp_wand with "pop_safe").
+      iIntros (true_) "->".
+      wp_apply (naive_pop_safe with "Hd").
+
+    }
+    (*
     iDestruct (persist_structure with "πd") as "[#Hv
         (%pr & %ld & %md & %rd & %sf & %prC & %ldC & %mdC & %rdC & %sfC
             & %kPr & %kMd & %kSf & %ltr & %rtr & -> & %cfg & pot
             & #Hpr & #Hld & #Hmd & #Hrd & #Hsf & #Hltr & #Hrtr & %Heq)]".
     wp_pures.
+    *)
+    (* START HERE *)
+
+    (*
     wp_bind (if: _ then _ else _)%E.
     wp_apply (wp_strong_mono _ _ _ _ _
       (λ v, isPopFiveTuple π depth (⋅x ++ oD) v ∗ Token π (S depth))%I

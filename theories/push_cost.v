@@ -323,27 +323,4 @@ Section proof.
     {{{ d', RET d'; IsDeque π (oD ++ ⋅x) d' ∗ Token π 0 }}}.
   Admitted.
 
-  (*
-  (* NOTE(Juliette): Marked as 0 time cost, but runs in ⏱ (8 * time_for_push) constant time *)
-  Corollary push_whole_spec : forall lvl b oB d oD size,
-    {{{ buffer size oB b ∗ isDeque π lvl oD d ∗ Token π lvl }}}
-      push_whole_buffer push b d
-    {{{ d', RET d'; isDeque π lvl (oB ++ oD) d' ∗ Token π lvl }}}.
-  Admitted.
-
-  (* NOTE(Juliette): Marked as 0 time cost, but runs in ⏱ (8 * time_for_push) constant time *)
-  Corollary binject_whole_spec : forall b oB d oD size size',
-    {{{ buffer size oB b ∗ buffer size' oD d }}}
-      inject_whole_buffer binject d b
-    {{{ d', RET d'; buffer (size+size') (oD ++ oB) d' }}}.
-  Admitted.
-
-  (* TODO: move me *)
-  Property inject_whole_spec : forall lvl b oB d oD size,
-    {{{ buffer size oB b ∗ isDeque π lvl oD d ∗ Token π lvl }}}
-      inject_whole_buffer inject d b
-    {{{ d', RET d'; isDeque π lvl (oD ++ oB) d' ∗ Token π lvl }}}.
-  Admitted.
-  *)
-
 End proof.

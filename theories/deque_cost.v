@@ -250,7 +250,7 @@ End potential_deques.
 
 (* The number of (amortized) calls to any of [push], [dconcat] or [pop]. *)
 Notation time_for_push := 7.
-Notation time_for_concat := (4 * time_for_push + 1 + 3).
+Notation time_for_concat := (8 * time_for_push + 1).
 Notation time_for_pop := (3 * time_for_concat).
 
 (* Useful tactics used throughout proofs (out of a section to be exported) *)
