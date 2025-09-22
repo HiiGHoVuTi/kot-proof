@@ -31,6 +31,7 @@ Section assumptions.
     Axiom bempty_spec : ⊢ buffer 0 [] bempty.
 
     Axiom buffer_length : forall n o b, buffer n o b ⊢ ⌜ length o = n ⌝.
+    Axiom buffer_injective : forall k k' o o' b, buffer k o b ∗ (buffer k' o' b : iProp Σ) ⊢ ⌜ o = o' ⌝.
 
     Axiom blength : val.
     Axiom blength_spec : forall n o b,
@@ -54,7 +55,7 @@ Section assumptions.
 
     Axiom binject : val.
     Axiom binject_spec : forall x n o b,
-      {{{ buffer n o b }}} binject b x {{{ b', RET b'; buffer (n+1) (o++⋅x) b }}}.
+      {{{ buffer n o b }}} binject b x {{{ b', RET b'; buffer (n+1) (o++⋅x) b' }}}.
 
     Axiom beject : val.
     Axiom beject_spec : forall n o b,
@@ -399,7 +400,7 @@ Section algorithms.
     end.
 
   Definition inject : val :=
-    rec: "inject" "x" "d" :=
+    rec: "inject" "d" "x" :=
     tick #();;
     match: "d" with
       NONE => asingleton "x"
@@ -411,15 +412,17 @@ Section algorithms.
           "r" <- ("prefix", "left", "middle", "right", "suffix");;
           assemble_ "prefix" "left" "middle" "right" (binject "suffix" "x")
         ) else (
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
           assemble_ bempty empty bempty empty (binject "suffix" "x")
         )
       ) else (
         if: bhas_length_6 "suffix" then (
           let:2 ("suffix'", "suffix") := bsplit624 "suffix" in
-          let: "right" := "inject" "right" (abuffer "suffix") in
+          let: "right" := "inject" "right" (abuffer "suffix'") in
           "r" <- ("prefix", "left", "middle", "right", "suffix");;
           assemble_ "prefix" "left" "middle" "right" (binject "suffix" "x")
         ) else (
+          "r" <- ("prefix", "left", "middle", "right", "suffix");;
           assemble_ "prefix" "left" "middle" "right" (binject "suffix" "x")
         )
       )
@@ -477,7 +480,7 @@ Section algorithms.
 
   Definition prepare_pop_case_1 : val :=
     λ: "f", λ: "t", λ: "left",
-    let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+    let:5 ("prefix", "_", "middle", "right", "suffix") := "f" in
     let:3 ("first", "child", "last") := "t" in
 
     if: bhas_length_3 "first" then (
@@ -487,11 +490,11 @@ Section algorithms.
       ("prefix", "left", "middle", "right", "suffix")
     ) else (
       let: "prefix" := bconcat32 "prefix" "first" in
-      if: bis_empty "child" && bis_empty "last" then (
+      if: ("child" = NONEV) && bis_empty "last" then (
         ("prefix", "left", "middle", "right", "suffix")
       ) else (
         let: "t" := abuffer "last" in
-        let: "left" := "push" "t" "left" in
+        let: "left" := push "t" "left" in
         let: "left" := dconcat "child" "left" in
         ("prefix", "left", "middle", "right", "suffix")
       )
@@ -499,7 +502,7 @@ Section algorithms.
 
   Definition prepare_pop_case_2 : val :=
     λ: "f", λ: "t", λ: "right",
-    let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+    let:5 ("prefix", "left", "middle", "_", "suffix") := "f" in
     let:3 ("first", "child", "last") := "t" in
     if: bhas_length_3 "first" then (
       let:3 ("prefix", "middle", "first") := bdouble_move_left "prefix" "middle" "first" in
@@ -509,7 +512,7 @@ Section algorithms.
     ) else (
       let: "prefix" := bconcat32 "prefix" "middle" in
       let: "middle" := "first" in
-      if: (bis_empty "child") && bis_empty "last" then (
+      if: ("child" = NONEV) && bis_empty "last" then (
         ("prefix", "left", "middle", "right", "suffix")
       ) else (
         let: "t" := abuffer "last" in
@@ -519,37 +522,39 @@ Section algorithms.
       )
     ).
 
-  (* NOTE(Juliette): inline mutually recursive functions *)
-  Definition pop_nonempty : val :=
-    rec: "pop_nonempty" "r" :=
-    tick #();;
-    let: "f" := !"r" in
-    if: naive_pop_safe "f" then naive_pop "f" else
-    let: "f" := (* prepare_pop "f" *)
-      let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+  (* Tarjan's
+  Definition pop_triple target := (
+    let: "f" := !target in
+    let: "t" := inspect_first "f" in
+    let:3 ("first", "child", "last") := "t" in
+    if: (~ "child" = NONEV) || bhas_length_3 "first"
+      then naive_pop "f"
+      else "pop_nonempty" target
+  )%E.
+  *)
+
+  Definition pop_triple target := (
+    let: "f" := !target in
+    let: "t" := inspect_first "f" in
+    let:3 ("first", "child", "last") := "t" in
+    (* if: (~ "child" = NONEV) || bhas_length_3 "first" *)
+    if: bhas_length_3 "first" || ~bis_empty "last"
+      then naive_pop "f"
+      else "pop_nonempty" target
+  )%E.
+
+
+  Definition prepare_pop target := (
+   let:5 ("prefix", "left", "middle", "right", "suffix") := target in
       match: "left" with
         SOME "left" =>
-          let:2 ("t", "left") := (* pop_triple "left" *)
-            let: "f" := !"left" in
-            let: "t" := inspect_first "f" in
-            let:3 ("first", "child", "last") := "t" in
-            if: ~(bis_empty "child") || bhas_length_3 "first"
-              then naive_pop "f"
-              else "pop_nonempty" "r"
-          in
-          prepare_pop_case_1 "f" "t" "left"
+          let:2 ("t", "left") := pop_triple "left" in
+          prepare_pop_case_1 target "t" "left"
         | NONE =>
       match: "right" with
         SOME "right" =>
-          let:2 ("t", "right") := (* pop_triple "right" *)
-            let: "f" := !"right" in
-            let: "t" := inspect_first "f" in
-            let:3 ("first", "child", "last") := "t" in
-            if: ~(bis_empty "child") || bhas_length_3 "first"
-              then naive_pop "f"
-              else "pop_nonempty" "r"
-          in
-          prepare_pop_case_2 "f" "t" "right"
+          let:2 ("t", "right") := pop_triple "right" in
+          prepare_pop_case_2 target "t" "right"
         | NONE =>
           if: bhas_length_3 "suffix" then (
             let: "suffix" := bconcat323 "prefix" "middle" "suffix" in
@@ -561,10 +566,26 @@ Section algorithms.
             ("prefix", "left", "middle", "right", "suffix")
           )
       end end
-    in
-      "r" <- "f";;
-      naive_pop "f"
-    .
+  )%E.
+
+  Definition pop_nonempty : val :=
+    rec: "pop_nonempty" "r" :=
+    tick #();;
+    let: "f" := !"r" in
+    let: "f" := if: naive_pop_safe "f" then "f" else prepare_pop "f" in
+    "r" <- "f";;
+    naive_pop "f".
+
+  (*
+  Definition pop_nonempty : val :=
+    rec: "pop_nonempty" "r" :=
+    tick #();;
+    let: "f" := !"r" in
+    if: naive_pop_safe "f" then naive_pop "f" else
+    let: "f" := prepare_pop "f" in
+    "r" <- "f";;
+    naive_pop "f".
+  *)
 
   Definition pop : val :=
     λ: "d",
@@ -610,7 +631,7 @@ Section algorithms.
             let: "t" := inspect_last "f" in
             let:2 ("d", "t") :=
               let:3 ("first", "child", "last") := "t" in
-              if: ~bis_empty "child" || bhas_length_3 "last"
+              if: ~("child" = NONEV) || bhas_length_3 "last"
               || (bis_empty "last" && bhas_length_3 "first")
                 then naive_eject "f"
                 else "eject_nonempty" "r"
@@ -624,7 +645,7 @@ Section algorithms.
             ("prefix", "left", "middle", "right", "suffix")
           ) else (
             let: "suffix" := bconcat23 "last" "suffix" in
-            if: bis_empty "child" && bis_empty "first" then (
+            if: ("child" = NONEV) && bis_empty "first" then (
               ("prefix", "left", "middle", "right", "suffix")
             ) else (
               let: "t" := abuffer "first" in
@@ -641,7 +662,7 @@ Section algorithms.
             let: "t" := inspect_last "f" in
             let:2 ("d", "t") :=
               let:3 ("first", "child", "last") := "t" in
-              if: ~bis_empty "child" || bhas_length_3 "last"
+              if: ~("child" = NONEV) || bhas_length_3 "last"
               || (bis_empty "last" && bhas_length_3 "first")
                 then naive_eject "f"
                 else "eject_nonempty" "r"
@@ -656,7 +677,7 @@ Section algorithms.
           ) else (
             let: "suffix" := bconcat23 "middle" "suffix" in
             let: "middle" := "last" in
-            if: bis_empty "child" && bis_empty "first" then (
+            if: ("child" = NONEV) && bis_empty "first" then (
               ("prefix", "left", "middle", "right", "suffix")
             ) else (
               let: "t" := abuffer "first" in

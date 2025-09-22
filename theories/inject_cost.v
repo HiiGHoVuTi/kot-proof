@@ -15,14 +15,14 @@ Section proof.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
-  Lemma push_spec_helper oD x d : forall depth,
+  Lemma inject_spec_helper oD x d : forall depth,
     {{{ isDeque π depth oD d ∗ ⏱ time_for_push ∗ Token π depth }}}
-      push x d
-    {{{ d', RET d'; isDeque π depth (⋅x ++ oD) d' ∗ Token π depth }}}.
+      inject d x
+    {{{ d', RET d'; isDeque π depth (oD ++ ⋅x) d' ∗ Token π depth }}}.
   Proof.
     iLöb as "iH" forall (x d oD).
     iIntros (depth ψ) "(Hd & τ & O) Hψ".
-    rewrite /push.
+    rewrite /inject.
     iDestruct (split_time 1 with "τ") as "[ι τ]". by auto with arith.
     wp_pures.
     wp_apply (tick_spec with "ι") as "_".
@@ -87,16 +87,16 @@ Section proof.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
-          wp_bind (bpush _ _)%E.
-          wp_apply (bpush_spec with "Hb1") as "%pr'' #Hpr''".
+          wp_bind (binject _ _)%E.
+          wp_apply (binject_spec with "Hb3") as "%sf'' #Hsf''".
           rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
           iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
-          wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
-          -- iExists pr'', ld, b2, rd, b3,
-              (⋅x ++ o1), [], o2, [], o3,
-              4, 2, 3, [], [].
+          wp_apply (ssref_alloc π (fiveTuple _ depth (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'".
+          -- iExists b1, ld, b2, rd, sf'',
+              o1, [], o2, [], (o3++⋅x),
+              3, 2, 4, [], [].
             iFrame. iFrame "#".
             doneL.
             iSplitR. by easy_config.
@@ -104,6 +104,7 @@ Section proof.
             inversion cfg; [| exfalso; lia].
             iPureIntro.
             rewrite Heq H123 //=.
+            aac_reflexivity.
           -- wp_pures.
             iApply "Hψ".
             iFrame.
@@ -124,12 +125,12 @@ Section proof.
           iIntros (unit) "O".
           wp_pures; clear unit.
           rewrite /assemble_.
-          wp_apply (bpush_spec with "Hsf") as "%sf' #Hsf'".
+          wp_apply (binject_spec with "Hsf") as "%sf' #Hsf'".
           wp_pures.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
-          wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
+          wp_apply (ssref_alloc π (fiveTuple _ depth (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'".
           -- iExists bempty, empty, bempty, empty, sf',
-              [], [], [], [], (⋅x ++ sfC),
+              [], [], [], [], (sfC++⋅x),
               0, 0, (S kSf), [], [].
             inversion cfg; [| exfalso; lia ].
             iDestruct (buffer_length with "Hpr") as "%HlprC". destruct prC; [| inversion HlprC].
@@ -159,17 +160,17 @@ Section proof.
             iExact "Hℓ'".
       + apply bool_decide_eq_false_1 in Heqb as Heqmd.
         wp_pures.
-        wp_apply (bhas_length_6_spec with "Hpr") as "_".
+        wp_apply (bhas_length_6_spec with "Hsf") as "_".
         wp_pures.
-        destruct (bool_decide (kPr = 6)) eqn:?.
+        destruct (bool_decide (kSf = 6)) eqn:?.
         * apply bool_decide_eq_true_1 in Heqb0 as ->.
           wp_pures.
-          wp_apply (bsplit642_spec with "Hpr") as "%b1 %b2 %o1 %o2 (#Ho1 & #Ho2 & %Heq12)".
+          wp_apply (bsplit624_spec with "Hsf") as "%b1 %b2 %o1 %o2 (#Ho1 & #Ho2 & %Heq12)".
           rewrite /abuffer /atriple_.
-          iSpecialize ("iH" $! (b2, NONEV, bempty)%V ld ltr (S depth)).
+          iSpecialize ("iH" $! (b1, NONEV, bempty)%V rd rtr (S depth)).
           iDestruct (time_combine with "[τ pot]") as "τ". by (rewrite /=; iFrame).
           iDestruct (split_time time_for_push with "τ") as "[ι τ]".
-            { destruct (buffer_colour kSf); rewrite /=; auto. }
+            { inversion cfg; invert_all_in; rewrite /=; lia. }
           do 16 wp_pure.
           wp_smart_apply ("iH" with "[ι O]") as "%ld' [#Hld' O]"; iClear "iH". {
             iFrame "#".
@@ -178,16 +179,16 @@ Section proof.
           }
           wp_pures.
           wp_bind (#ℓ <- _)%E.
-          inversion cfg.
-          iDestruct (split_time (4 ⋄ kSf) with "τ") as "[ι τ]".
+          inversion cfg. lia.
+          iDestruct (split_time (kPr ⋄ 4) with "τ") as "[ι τ]".
             { invert_all_in; rewrite //=; auto. }
           iApply (wp_wand with "[DONE ι O]").
           {
             iApply ("DONE" with "[ι]"); [| iFrame].
             iNext.
-            iExists b1, ld', md, rd, sf,
-              o1, (⋅o2 ++ ldC), mdC, rdC, sfC,
-              4, 2, kSf, (⋅(b2, NONEV, bempty)%V ++ ltr), rtr.
+            iExists pr, ld, md, ld', b2,
+              prC, ldC, mdC, (rdC++⋅o1), o2,
+              kPr, 2, 4, ltr, (rtr++⋅(b1, NONEV, bempty)%V).
             iFrame "#".
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; list_elem_of. }
@@ -195,12 +196,15 @@ Section proof.
               { rewrite {2}/five_tuple_potential.
                 invert_all_in; rewrite //=; auto.
               }
+            iSplitR. iApply (big_sepL2_mono with "Hltr"). by auto.
             iSplitL.
-              { iApply (big_sepL2_app with "[Hltr]").
+              { iApply (big_sepL2_app with "[Hrtr]").
+                - iApply (big_sepL2_mono with "Hrtr").
+                  by auto.
                 - iApply (big_sepL2_singleton).
                   iNext. rewrite triple_unfold.
-                  iExists b2, NONEV, bempty,
-                    o2, [], [],
+                  iExists b1, NONEV, bempty,
+                    o1, [], [],
                     2, 0, [].
                   iSplitR. { iPureIntro; eapply left_leaning; list_elem_of.  }
                   do 2 doneL.
@@ -208,25 +212,22 @@ Section proof.
                   iSplitR. iApply bempty_spec.
                   doneL.
                   iPureIntro; simpl; aac_reflexivity.
-                - iApply (big_sepL2_mono with "Hltr").
-                  by auto.
               }
-            iSplitR. iApply (big_sepL2_mono with "Hrtr"). by auto.
             iPureIntro.
-            rewrite Heq Heq12 /=.
+            rewrite Heq Heq12 /= concat_app /=.
             aac_reflexivity.
           }
           iIntros (unit) "O".
           rewrite /assemble_.
           wp_pures; clear unit.
-          wp_apply (bpush_spec with "Ho1") as "%pr3 #Hpr3".
+          wp_apply (binject_spec with "Ho2") as "%pr3 #Hpr3".
           wp_pures.
-          iDestruct (split_time (5 ⋄ kSf) with "τ") as "[ι τ]".
+          iDestruct (split_time (kPr ⋄ 5) with "τ") as "[ι τ]".
             { invert_all_in; rewrite //=; auto. }
-          wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'". {
-            iExists pr3, ld', md, rd, sf,
-              (⋅x ++ o1), (⋅o2 ++ ldC), mdC, rdC, sfC,
-              5, 2, kSf, (⋅ (b2, NONEV, bempty)%V ++ ltr), rtr.
+          wp_apply (ssref_alloc π (fiveTuple _ depth (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'". {
+            iExists pr, ld, md, ld', pr3,
+              prC, ldC, mdC, (rdC++⋅o1), (o2++⋅x),
+              kPr, 2, 5, ltr, (rtr ++ ⋅ (b1, NONEV, bempty)%V).
             iFrame "#".
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; list_elem_of. }
@@ -234,13 +235,15 @@ Section proof.
               { rewrite {2}/five_tuple_potential.
                 invert_all_in; rewrite //=; auto.
               }
-            (* TODO(Juliette): factor out this proof *)
+            iSplitR. iApply (big_sepL2_mono with "Hltr"). by auto.
             iSplitL.
-              { iApply (big_sepL2_app with "[Hltr]").
+              { iApply (big_sepL2_app with "[Hrtr]").
+                - iApply (big_sepL2_mono with "Hrtr").
+                  by auto.
                 - iApply (big_sepL2_singleton).
                   iNext. rewrite triple_unfold.
-                  iExists b2, NONEV, bempty,
-                    o2, [], [],
+                  iExists b1, NONEV, bempty,
+                    o1, [], [],
                     2, 0, [].
                   iSplitR. { iPureIntro; eapply left_leaning; list_elem_of.  }
                   do 2 doneL.
@@ -248,12 +251,9 @@ Section proof.
                   iSplitR. iApply bempty_spec.
                   doneL.
                   iPureIntro; simpl; aac_reflexivity.
-                - iApply (big_sepL2_mono with "Hltr").
-                  by auto.
               }
-            iSplitR. iApply (big_sepL2_mono with "Hrtr"). by auto.
             iPureIntro.
-            rewrite Heq Heq12 /=.
+            rewrite Heq Heq12 /= concat_app /=.
             aac_reflexivity.
           }
           wp_pures.
@@ -273,17 +273,17 @@ Section proof.
           }
           iIntros (unit) "O".
           wp_pures; clear unit.
-          wp_apply (bpush_spec with "Hpr") as "%pr' #Hpr'".
+          wp_apply (binject_spec with "Hsf") as "%sf' #Hsf'".
           rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
           iDestruct (split_time 3 with "τ") as "[ι τ]". by lia.
-          wp_apply (ssref_alloc π (fiveTuple _ depth (⋅x ++ oD)) with "[ι]") as "%ℓ' #Hℓ'".
-          -- iExists pr', ld, md, rd, sf,
-              (⋅x ++ prC), ldC, mdC, rdC ,sfC,
-              (S kPr), kMd, kSf, ltr, rtr.
+          wp_apply (ssref_alloc π (fiveTuple _ depth (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'".
+          -- iExists pr, ld, md, rd, sf',
+              prC, ldC, mdC, rdC, (sfC++⋅x),
+              kPr, kMd, (S kSf), ltr, rtr.
             inversion cfg; [ exfalso; lia |].
-            assert (S kPr = kPr + 1) as -> by lia.
+            assert (S kSf = kSf + 1) as -> by lia.
             iFrame "#".
             iSplitR. done.
             iSplitR. { iPureIntro; constructor; invert_all_in; list_elem_of. }
@@ -299,14 +299,14 @@ Section proof.
   Unshelve. all: by auto.
   Qed.
 
-  Theorem push_spec oD (x : val) (d : val) :
+  Theorem inject_spec oD (x : val) (d : val) :
     {{{ IsDeque π oD d ∗ ⏱ time_for_push ∗ Token π 0 }}}
-      push x d
-    {{{ d', RET d'; IsDeque π (⋅x ++ oD) d' ∗ Token π 0 }}}.
+      inject d x
+    {{{ d', RET d'; IsDeque π (oD++⋅x) d' ∗ Token π 0 }}}.
   Proof.
     iIntros (ψ) "(HD & τ & O) Hψ".
     rewrite /IsDeque.
-    wp_apply (push_spec_helper with "[HD τ O]") as "%d' HD'".
+    wp_apply (inject_spec_helper with "[HD τ O]") as "%d' HD'".
       { iFrame. }
     by iApply "Hψ".
   Qed.

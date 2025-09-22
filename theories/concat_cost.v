@@ -8,7 +8,7 @@ From AAC_tactics Require Import AAC.
 From AAC_tactics Require Import Instances.
 Import Instances.Lists.
 
-From Deque Require Import common tick shared_ref deque_cost push_cost.
+From Deque Require Import common tick shared_ref deque_cost push_cost inject_cost.
 
 Section proof.
 
@@ -246,7 +246,7 @@ Section proof.
             inversion cfg1; [ rewrite -H3 in H14; lia |].
             iSplitR. iPureIntro.
             destruct (length rdC1); [apply left_leaning | apply has_child];
-              auto with arith; list_elem_of.
+              auto with arith; try list_elem_of.
             iSplitR. done.
             iFrame "#".
             doneR.
@@ -380,7 +380,7 @@ Section proof.
     iFrame.
     ℓisDeque ℓ'. iExact "Hℓ'".
     Unshelve. all: by auto.
-  Admitted.
+  Qed.
 
   Definition dconcat_spec d1 d2 : forall o1 o2,
     {{{ isDeque π 0 o1 d1 ∗ isDeque π 0 o2 d2 ∗ ⏱ time_for_concat ∗ Token π 0 }}}

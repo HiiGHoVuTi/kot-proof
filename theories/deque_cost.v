@@ -137,23 +137,6 @@ Section potential_deques.
       ⌜ o = pr_content ++ List.concat left_content ++ md_content ++ List.concat right_content ++ sf_content ⌝
   )%I.
 
- Definition isPopFiveTuple : isDequeType := (
-    λ n o d, ∃ (pr ld md rd sf : val)
-      pr_content left_content md_content right_content sf_content
-      (kPr kMd kSf : nat) left_triples right_triples,
-      ⌜ d = (pr, ld, md, rd, sf)%V ⌝ ∗
-      ⌜ pop_configuration kPr (length left_content) kMd (length right_content) kSf ⌝ ∗
-      five_tuple_potential kPr kSf ∗
-      buffer kPr pr_content pr ∗
-      isDeque (S n) left_triples ld ∗
-      buffer kMd md_content md ∗
-      isDeque (S n) right_triples rd ∗
-      buffer kSf sf_content sf ∗
-      ([∗list] c;tr ∈ left_content;left_triples, ▷ triple (S n) c tr) ∗
-      ([∗list] c;tr ∈ right_content;right_triples, ▷ triple (S n) c tr) ∗
-      ⌜ o = pr_content ++ List.concat left_content ++ md_content ++ List.concat right_content ++ sf_content ⌝
-  )%I.
-
   (* Unfolding lemmas come directly from the fixpoint theory *)
   Lemma isDeque_unfold n o d :
     isDeque n o d ⊣⊢ fDeque triple isDeque n o d.
@@ -533,8 +516,8 @@ Section proofs.
       + by iApply (IHL M H2).
   Qed.
 
-  Lemma abuffer_spec : forall n k o b,
-    n ∈ [2; 3] -> {{{ buffer n o b }}} abuffer b {{{ t, RET t; triple π k o t }}}.
+  Lemma abuffer_spec_explicit : forall n k o b,
+    n ∈ [2; 3] -> {{{ buffer n o b }}} abuffer b {{{ RET (b, NONEV, bempty)%V; triple π k o (b, NONEV, bempty)%V }}}.
   Proof.
     iIntros (n k o b Hn ψ) "Hb Hψ".
     rewrite /abuffer /atriple_.
@@ -551,5 +534,15 @@ Section proofs.
     repeat doneL.
     iPureIntro. rewrite !app_nil_r //=.
   Qed.
+
+  Lemma abuffer_spec : forall n k o b,
+    n ∈ [2; 3] -> {{{ buffer n o b }}} abuffer b {{{ t, RET t; triple π k o t }}}.
+  Proof.
+    iIntros (n k' o k H ψ) "Hb Hψ".
+    wp_apply (abuffer_spec_explicit with "Hb") as "H". by assumption.
+    iApply "Hψ".
+    done.
+  Qed.
+
 
 End proofs.
