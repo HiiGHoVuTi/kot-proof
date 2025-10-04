@@ -281,11 +281,6 @@ Section configurations.
     | suffix_only : forall s, s ∈ [1..8] -> five_tuple_configuration 0 0 0 0 s
     | has_middle : forall p ld rd s, p ∈ [3..6] -> s ∈ [3..6] -> five_tuple_configuration p ld 2 rd s.
 
-  (* Five-tuple configuration for calling naive_pop *)
-  Inductive pop_configuration : nat -> nat -> nat -> nat -> nat -> Prop :=
-    | pop_suffix_only : forall s, s ∈ [1..8] -> pop_configuration 0 0 0 0 s
-    | pop_has_middle : forall p ld rd s, p ∈ [4..6] -> s ∈ [3..6] -> pop_configuration p ld 2 rd s.
-
   Inductive colour : Set :=
     | very_green | green | red | very_red.
 
@@ -522,7 +517,7 @@ Section algorithms.
       )
     ).
 
-  (* Tarjan's
+  (* Tarjan
   Definition pop_triple target := (
     let: "f" := !target in
     let: "t" := inspect_first "f" in
@@ -597,8 +592,8 @@ Section algorithms.
     λ: "t",
       let:3 ("first", "child", "last") := "t" in
       if: bis_empty "last" then (
-        let: "first" := bempty in
         let: "last" := "first" in
+        let: "first" := bempty in
         ("first", "child", "last")
       ) else "t".
 
@@ -618,29 +613,26 @@ Section algorithms.
       let:5 ("_", "_", "_", "_", "s") := "f" in
       blast "s".
 
-  Definition eject_nonempty : val :=
-    rec: "eject_nonempty" "r" :=
-    let: "f" := !"r" in
-    if: naive_eject_safe "f" then naive_eject "f" else
-    let: "f" := (* prepare_eject "f" *)
-      let:5 ("prefix", "left", "middle", "right", "suffix") := "f" in
+  Definition eject_triple target := (
+    let: "f" := !target in
+    let: "t" := inspect_last "f" in
+    let:2 ("d", "t") :=
+      let:3 ("first", "child", "last") := "t" in
+      if: bhas_length_3 "first" || ~ bis_empty "last"
+        then naive_eject "f"
+        else "eject_nonempty" target
+      in ("d", antinormalize "t")
+  )%E.
+
+  Definition prepare_eject target :=
+      let:5 ("prefix", "left", "middle", "right", "suffix") := target in
       match: "right" with
         SOME "right" =>
-          let:2 ("right", "t") := (* eject_triple "right" *)
-            let: "f" := !"right" in
-            let: "t" := inspect_last "f" in
-            let:2 ("d", "t") :=
-              let:3 ("first", "child", "last") := "t" in
-              if: ~("child" = NONEV) || bhas_length_3 "last"
-              || (bis_empty "last" && bhas_length_3 "first")
-                then naive_eject "f"
-                else "eject_nonempty" "r"
-              in ("d", antinormalize "t")
-          in
+          let:2 ("right", "t") := eject_triple "right" in
           let:3 ("first", "child", "last") := "t" in
           if: bhas_length_3 "last" then (
             let:2 ("last", "suffix") := bmove_right_1_33 "last" "suffix" in
-            let: "t" := atriple "first" "child" "right" in
+            let: "t" := atriple "first" "child" "last" in
             let: "right" := inject "right" "t" in
             ("prefix", "left", "middle", "right", "suffix")
           ) else (
@@ -657,17 +649,7 @@ Section algorithms.
       | NONE =>
       match: "left" with
         SOME "left" =>
-          let:2 ("left", "t") := (* eject_triple "left" *)
-            let: "f" := !"right" in
-            let: "t" := inspect_last "f" in
-            let:2 ("d", "t") :=
-              let:3 ("first", "child", "last") := "t" in
-              if: ~("child" = NONEV) || bhas_length_3 "last"
-              || (bis_empty "last" && bhas_length_3 "first")
-                then naive_eject "f"
-                else "eject_nonempty" "r"
-              in ("d", antinormalize "t")
-          in
+          let:2 ("left", "t") := eject_triple "left" in
           let:3 ("first", "child", "last") := "t" in
           if: bhas_length_3 "last" then (
             let:3 ("last", "middle", "suffix") := bdouble_move_right "last" "middle" "suffix" in
@@ -696,11 +678,15 @@ Section algorithms.
           let:3 ("prefix", "middle", "suffix") := bdouble_move_right "prefix" "middle" "suffix" in
           ("prefix", "left", "middle", "right", "suffix")
         )
-      end end
-    in
-    "r" <- "f"
-    naive_eject "f"
-    .
+      end end.
+
+  Definition eject_nonempty : val :=
+    rec: "eject_nonempty" "r" :=
+    tick #();;
+    let: "f" := !"r" in
+    let: "f" := if: naive_eject_safe "f" then "f" else prepare_eject "f" in
+    "r" <- "f";;
+    naive_eject "f".
 
   Definition eject : val :=
     λ: "d",
@@ -710,22 +696,3 @@ Section algorithms.
       end.
 
 End algorithms.
-
-
-Section lemmas.
-
-  Context `{heapGS Σ}.
-
-  Definition list_factor {α} : list α -> list α -> Prop :=
-    λ ℓ ℓ', ∃ p s, ℓ' = p ++ ℓ ++ s.
-
-  Notation "ℓ ⊑ ℓ'" := (list_factor ℓ ℓ').
-
-  (* NOTE(Juliette): variant for sep_L2 *)
-  Lemma list_factor_sep : forall α (ℓ : list α) ℓ' (ϕ : α -> iProp Σ),
-    ℓ ⊑ ℓ' ->
-    ([∗list] x ∈ ℓ', ϕ x) ⊢ [∗list] x ∈ ℓ, ϕ x.
-  Proof.
-  Abort.
-
-End lemmas.

@@ -5,8 +5,13 @@ theories/tick.v
 theories/fold.v
 theories/common.v
 theories/push_cost.v
+theories/push_corr.v
 theories/inject_cost.v
+theories/inject_corr.v
 theories/concat_cost.v
 theories/pop_cost.v
 theories/pop_cost_lemmas.v
+theories/eject_cost_lemmas.v
+theories/eject_cost.v
 theories/deque_cost.v
+theories/deque_corr.v

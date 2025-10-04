@@ -19,6 +19,11 @@ Section lemmas.
   Definition Δ (kp ks : nat) := (kp ∘ ks) - (kp ⋄ ks).
   Notation "kp ⊻ ks" := ((kp ∘ ks) + (kp ⋄ ks)) (at level 60).
 
+  (* Five-tuple configuration for calling naive_pop *)
+  Inductive pop_configuration : nat -> nat -> nat -> nat -> nat -> Prop :=
+    | pop_suffix_only : forall s, s ∈ [1..8] -> pop_configuration 0 0 0 0 s
+    | pop_has_middle : forall p ld rd s, p ∈ [4..6] -> s ∈ [3..6] -> pop_configuration p ld 2 rd s.
+
  Definition isPopFiveTuple := (
     λ n o kPr kSf d, ∃ (pr ld md rd sf : val)
       pr_content left_content md_content right_content sf_content
