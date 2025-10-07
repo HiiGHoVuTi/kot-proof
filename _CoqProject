@@ -9,9 +9,14 @@ theories/push_corr.v
 theories/inject_cost.v
 theories/inject_corr.v
 theories/concat_cost.v
+theories/concat_corr.v
 theories/pop_cost.v
+theories/pop_corr.v
 theories/pop_cost_lemmas.v
+theories/pop_corr_lemmas.v
 theories/eject_cost_lemmas.v
+theories/eject_corr_lemmas.v
 theories/eject_cost.v
+theories/eject_corr.v
 theories/deque_cost.v
 theories/deque_corr.v
