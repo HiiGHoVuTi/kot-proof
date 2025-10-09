@@ -297,5 +297,15 @@ Section proofs.
     done.
   Qed.
 
+  Lemma decrease_in : forall n o, n ∈ map S o -> ∃ k, n = k + 1 ∧ k ∈ o.
+  Proof.
+    induction o; intros.
+    - inversion H.
+    - rewrite /= in H.
+      inversion H.
+      + exists a. split; [ auto | list_elem_of ]. lia.
+      + specialize (IHo H2) as (k & G1 & G2).
+        exists k. split; [ auto | list_elem_of ].
+  Qed.
 
 End proofs.
