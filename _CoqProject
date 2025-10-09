@@ -20,3 +20,4 @@ theories/eject_cost.v
 theories/eject_corr.v
 theories/deque_cost.v
 theories/deque_corr.v
+theories/article.v
