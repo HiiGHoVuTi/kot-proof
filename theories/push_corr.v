@@ -14,9 +14,7 @@ Section proof.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   Lemma push_spec_helper oD x d :
     {{{ isDeque oD d }}}
@@ -26,9 +24,9 @@ Section proof.
     iLöb as "iH" forall (x d oD).
     iIntros (ψ) "Hd Hψ".
     rewrite /push.
-    iDestruct (TIME_CHEAT 1) as "ι".
     wp_pures.
-    wp_apply (tick_spec with "ι") as "_".
+    wp_apply (tick_spec) as "_".
+      { rewrite NO_COST_ANALYSIS time_zero //. }
     wp_pures.
     rewrite {1} isDeque_unfold.
     iDestruct "Hd" as "[[-> ->] | (%ℓ & -> & #Hℓ)]".

@@ -14,9 +14,7 @@ Section lemmas.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   (* Five-tuple configuration for calling naive_eject *)
   Inductive eject_configuration : nat -> nat -> nat -> nat -> nat -> Prop :=
@@ -235,8 +233,8 @@ Section lemmas.
         * iIntros (y).
           rewrite /inject.
           wp_pures.
-          iDestruct (TIME_CHEAT 1) as "τ".
-          wp_apply (tick_spec with "τ") as "_".
+          wp_apply (tick_spec) as "_".
+            { rewrite NO_COST_ANALYSIS time_zero //. }
           rewrite /asingleton.
           wp_pures.
           wp_apply (bpush_spec) as (b) "Hb". by iApply bempty_spec.
@@ -275,8 +273,8 @@ Section lemmas.
         iIntros (y').
         rewrite /inject.
         wp_pures.
-        iDestruct (TIME_CHEAT _) as "τ".
-        wp_apply (tick_spec with "τ") as "_".
+        wp_apply (tick_spec) as "_".
+          { rewrite NO_COST_ANALYSIS time_zero //. }
         wp_pures.
         wp_load.
         wp_pures.
@@ -318,8 +316,8 @@ Section lemmas.
       iIntros (y).
       rewrite /inject.
       wp_pures.
-      iDestruct (TIME_CHEAT _) as "τ".
-      wp_apply (tick_spec with "τ") as "_".
+      wp_apply (tick_spec) as "_".
+        { rewrite NO_COST_ANALYSIS time_zero //. }
       wp_pures.
       wp_load.
       wp_pures.
@@ -597,7 +595,7 @@ Section lemmas.
     iDestruct (big_sepL2_app_inv with "Htr") as "(Htr & Ht)". by right.
     iAssert (triple l t) with "[Ht]" as "Ht".
       { simpl. iDestruct "Ht" as "[A _]". done. }
-    iDestruct (pop_corr_lemmas.special_decidable with "Ht") as "[#Ht' | #Ht']";
+    iDestruct (pop_corr_lemmas.special_decidable NO_COST_ANALYSIS with "Ht") as "[#Ht' | #Ht']";
     iCombine "Ht' Ht'" as "[Ht! Ht!']";
     iDestruct "Ht!'" as (fi c la fc cc lc kF kL tr) "(%conf & -> & Hf' & Hc & Hl & Htrtr & %Hleq)";
     inversion conf.
@@ -906,6 +904,7 @@ Section lemmas.
               iIntros (l') "Hl'".
               iModIntro. wp_pures.
               wp_apply (dconcat_spec_helper with "[Hℓc Hl']") as (l) "Hl".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -974,6 +973,7 @@ Section lemmas.
                 iIntros (l') "Hl'".
                 iModIntro. wp_pures.
                 wp_apply (dconcat_spec_helper with "[Hc Hl']") as (l) "Hl".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -998,6 +998,7 @@ Section lemmas.
                 iIntros (l') "Hl'".
                 iModIntro. wp_pures.
                 wp_apply (dconcat_spec_helper with "[Hc Hl']") as (l) "Hl".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -1192,6 +1193,7 @@ Section lemmas.
               iIntros (r') "Hr'".
               iModIntro. wp_pures.
               wp_apply (dconcat_spec_helper with "[Hℓc Hr']") as (r) "Hr".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -1264,6 +1266,7 @@ Section lemmas.
               iIntros (r') "Hr'".
               iModIntro. wp_pures.
               wp_apply (dconcat_spec_helper with "[Hc Hr']") as (r) "Hr".
+                { assumption. }
                 { iFrame. iExact "Hc". }
               wp_pures.
               iModIntro.

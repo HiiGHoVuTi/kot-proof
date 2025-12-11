@@ -14,9 +14,7 @@ Section proof.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   Lemma safe_inject_whole :
     ∀ sC dC d, isDeque dC d -∗
@@ -28,6 +26,7 @@ Section proof.
     all: rewrite /fold.safe_fold.
     - iFrame. rewrite app_nil_r //.
     - iApply (inject_spec_helper).
+        { assumption. }
         { iFrame. iExact "Hd". }
       iNext.
       iIntros (d') "Hd'".
@@ -68,6 +67,7 @@ Section proof.
     - rewrite /fold.safe_fold.
       wp_pures.
       iApply (push_spec_helper).
+        { assumption. }
         { iFrame. iExact "Hd". }
       iNext.
       iIntros (d') "Hd'".
@@ -103,8 +103,8 @@ Section proof.
     iIntros (o1 o2 ψ) "(Hd1 & Hd2) Hψ".
     rewrite /dconcat /IsDeque.
     wp_pures.
-    iDestruct (TIME_CHEAT 1) as "ι".
-    wp_apply (tick_spec with "ι") as "_".
+    wp_apply (tick_spec) as "_".
+      { rewrite NO_COST_ANALYSIS time_zero //. }
     wp_pures.
     (* trivial cases *)
     rewrite {1} isDeque_unfold.
@@ -187,6 +187,7 @@ Section proof.
     rewrite /atriple_.
     wp_pures.
     wp_apply (inject_spec_helper with "Hld1") as "%ld1' #Hld1'".
+      { assumption. }
     wp_pures.
     wp_bind (if: _ then _ else _)%E.
     wp_apply (wp_strong_mono _ _ _ _ _
@@ -227,6 +228,7 @@ Section proof.
         wp_apply (abuffer_spec with "Hs1''") as "%ts1'' #Hts1''".
           { inversion Hks1''; [lia | list_elem_of]. }
         wp_apply (inject_spec_helper with "Hld1'") as "%ld1'' #Hld1''".
+          { assumption. }
         iExists ((ltr1 ++ ⋅(md1, rd1, s1')%V) ++ ⋅ts1''%V),
                 ((ldC1 ++ ⋅(mdC1 ++ List.concat rdC1 ++ os1')) ++ ⋅os1'').
         iFrame. iFrame "#".
@@ -253,6 +255,7 @@ Section proof.
       { iFrame. iPureIntro. clear HkSf1' Hks1' Hks1''. invert_all_in; list_elem_of. }
     wp_pures.
     wp_apply (push_spec_helper with "Hrd2") as "%rd2' #Hrd2'".
+      { assumption. }
     wp_pures.
     wp_bind (if: _ then _ else _)%E.
     wp_apply (wp_strong_mono _ _ _ _ _
@@ -295,6 +298,7 @@ Section proof.
         wp_apply (abuffer_spec with "Hp2'") as "%tp2' #Htp2'".
           { inversion Hp21'; [lia | list_elem_of]. }
         wp_apply (push_spec_helper with "Hrd2'") as "%rd2'' #Hrd2''".
+          { assumption. }
         iFrame.
         iExists (⋅tp2' ++ ⋅(p2'', ld2, md2)%V ++ rtr2),
                 (⋅op2' ++ ⋅(op2'' ++ concat ldC2 ++ mdC2) ++ rdC2).

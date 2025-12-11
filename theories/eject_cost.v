@@ -15,6 +15,8 @@ Section proof.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
+  Variable COST_ANALYSIS : TICK_COST = 1.
+
   Lemma eject_spec_helper oD x (ℓ : loc) : forall depth,
     {{{ isDeque π depth (oD ++ ⋅x) (SOMEV #ℓ) ∗ ⏱ time_for_pop ∗ Token π depth }}}
       eject_nonempty (#ℓ)
@@ -30,7 +32,9 @@ Section proof.
     inversion Heqℓ as [H]. rewrite -H. clear Heqℓ H ℓ'.
     wp_pures.
     iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
+    rewrite -COST_ANALYSIS.
     wp_apply (tick_spec with "ι") as "_".
+    rewrite COST_ANALYSIS.
     wp_pures.
     wp_apply (ssref_load_open with "[Hℓ O]") as "%d (O & πd & DONE)".
       { by iFrame. }
@@ -69,7 +73,7 @@ Section proof.
         }
         iIntros (unit) "O".
         wp_pures; clear unit.
-        wp_apply (safe_naive_eject with "[τ]") as (x' d' o') "(Hd' & %Heq)".
+        wp_apply (safe_naive_eject COST_ANALYSIS with "[τ]") as (x' d' o') "(Hd' & %Heq)".
           { iFrame "#".
             split_t (kp ∘ ks); [| done].
             destruct (buffer_colour (ks-1));
@@ -77,7 +81,7 @@ Section proof.
             destruct (buffer_colour kp);
             simpl; auto with arith.
           }
-        destruct (app_sing_inv _ _ _ _ Heq) as [-> ->].
+        destruct (app_sing_inv COST_ANALYSIS _ _ _ _ Heq) as [-> ->].
         iApply "Hψ".
         by iFrame.
       Transparent isPersFiveTuple.
@@ -88,6 +92,7 @@ Section proof.
     iIntros (false_) "->".
     wp_pures.
     wp_apply (prepare_eject_spec with "[τ O Hunsafe]").
+    - assumption.
     - iFrame.
       iIntros (ℓ' x' o') "Hℓ' τ O".
       Transparent eject_nonempty.
@@ -120,6 +125,7 @@ Section proof.
       }
       iIntros (unit) "O". wp_pures; clear unit.
       wp_apply (safe_naive_eject with "[τ]").
+      + assumption.
       + split_t (kp ∘ ks).
         iFrame.
         iExists p, l, m, r, s, op, ol, om, or, os, kMd, ltr, rtr.
@@ -130,7 +136,7 @@ Section proof.
         iSplit. iApply (big_sepL2_mono with "Hrtr"). by auto.
         done.
       + iIntros (x' d' o') "[Hd %Heq]".
-        destruct (app_sing_inv _ _ _ _ Heq) as [-> ->].
+        destruct (app_sing_inv COST_ANALYSIS _ _ _ _ Heq) as [-> ->].
         iApply "Hψ".
         iFrame.
   Qed.

@@ -15,6 +15,8 @@ Section proof.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
+  Variable COST_ANALYSIS : TICK_COST = 1.
+
   Lemma inject_spec_helper oD x d : forall depth,
     {{{ isDeque π depth oD d ∗ ⏱ time_for_push ∗ Token π depth }}}
       inject d x
@@ -25,7 +27,9 @@ Section proof.
     rewrite /inject.
     iDestruct (split_time 1 with "τ") as "[ι τ]". by auto with arith.
     wp_pures.
+    rewrite -COST_ANALYSIS.
     wp_apply (tick_spec with "ι") as "_".
+    rewrite COST_ANALYSIS.
     wp_pures.
     rewrite {1} isDeque_unfold.
     iDestruct "Hd" as "[[-> ->] | (%ℓ & -> & #Hℓ)]".

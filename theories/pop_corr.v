@@ -14,9 +14,7 @@ Section proof.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   Lemma pop_spec_helper oD x (ℓ : loc) :
     {{{ isDeque (⋅x ++ oD) (SOMEV #ℓ) }}}
@@ -32,11 +30,11 @@ Section proof.
     iDestruct "Hd" as "[[%H _] | (%ℓ' & %Heqℓ & #Hℓ)]". by inversion H.
     inversion Heqℓ as [H]. rewrite -H. clear Heqℓ H ℓ'.
     wp_pures.
-    iDestruct (TIME_CHEAT) as "ι".
-    wp_apply (tick_spec with "ι") as "_".
+    wp_apply (tick_spec) as "_".
+      { rewrite NO_COST_ANALYSIS time_zero //. }
     wp_pures.
     wp_apply (csref_load with "Hℓ") as (d) "πd".
-    iDestruct (safe_decidable (⋅x ++ oD) d with "πd") as "[Unsafe | Safe]".
+    iDestruct (safe_decidable NO_COST_ANALYSIS (⋅x ++ oD) d with "πd") as "[Unsafe | Safe]".
     wp_pures.
     2: {
       wp_pures.
@@ -67,8 +65,8 @@ Section proof.
         iIntros (unit).
         wp_pures; clear unit.
         wp_apply (safe_naive_pop with "[Hd]") as (x' d' o') "(Hd' & %Heq)".
-        { iFrame "#".
-        }
+        { assumption. }
+        { iFrame "#". }
         inversion Heq.
         iApply "Hψ".
         by iFrame.
@@ -80,6 +78,7 @@ Section proof.
     iIntros (false_) "->".
     wp_pures.
     wp_apply (prepare_pop_spec with "[Hunsafe]").
+    - assumption.
     - iFrame.
       iIntros (ℓ' x' o') "Hℓ'".
       Transparent pop_nonempty.
@@ -108,6 +107,7 @@ Section proof.
       }
       iIntros (unit). wp_pures; clear unit.
       wp_apply (safe_naive_pop).
+      + assumption.
       + iFrame.
         iExists p, l, m, r, s, op, ol, om, or, os, kPr, kMd, kSf, ltr, rtr.
         doneL.

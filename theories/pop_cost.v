@@ -15,6 +15,8 @@ Section proof.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
+  Variable COST_ANALYSIS : TICK_COST = 1.
+
   Lemma pop_spec_helper oD x (ℓ : loc) : forall depth,
     {{{ isDeque π depth (⋅x ++ oD) (SOMEV #ℓ) ∗ ⏱ time_for_pop ∗ Token π depth }}}
       pop_nonempty (#ℓ)
@@ -30,11 +32,13 @@ Section proof.
     inversion Heqℓ as [H]. rewrite -H. clear Heqℓ H ℓ'.
     wp_pures.
     iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
+    rewrite -COST_ANALYSIS.
     wp_apply (tick_spec with "ι") as "_".
+    rewrite COST_ANALYSIS.
     wp_pures.
     wp_apply (ssref_load_open with "[Hℓ O]") as "%d (O & πd & DONE)".
       { by iFrame. }
-    iDestruct (safe_decidable depth (⋅x ++ oD) d with "πd") as "[Unsafe | Safe]".
+    iDestruct (safe_decidable COST_ANALYSIS depth (⋅x ++ oD) d with "πd") as "[Unsafe | Safe]".
     wp_pures.
     2: {
       wp_pures.
@@ -70,7 +74,7 @@ Section proof.
         }
         iIntros (unit) "O".
         wp_pures; clear unit.
-        wp_apply (safe_naive_pop with "[τ]") as (x' d' o') "(Hd' & %Heq)".
+        wp_apply (safe_naive_pop COST_ANALYSIS with "[τ]") as (x' d' o') "(Hd' & %Heq)".
           { iFrame "#".
             split_t (kp ∘ ks); [| done].
             destruct (buffer_colour (kp-1));
@@ -89,6 +93,7 @@ Section proof.
     iIntros (false_) "->".
     wp_pures.
     wp_apply (prepare_pop_spec with "[τ O Hunsafe]").
+    - assumption.
     - iFrame.
       iIntros (ℓ' x' o') "Hℓ' τ O".
       Transparent pop_nonempty.
@@ -121,6 +126,7 @@ Section proof.
       }
       iIntros (unit) "O". wp_pures; clear unit.
       wp_apply (safe_naive_pop with "[τ]").
+      + assumption.
       + split_t (kp ∘ ks).
         iFrame.
         iExists p, l, m, r, s, op, ol, om, or, os, kMd, ltr, rtr.

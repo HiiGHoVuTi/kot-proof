@@ -15,6 +15,8 @@ Section proof.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
+  Variable COST_ANALYSIS : TICK_COST = 1.
+
   Lemma safe_inject_whole :
     ∀ sC,
     ⏱ (time_for_push * length sC) -∗
@@ -30,6 +32,7 @@ Section proof.
     - iDestruct (split_time time_for_push with "τ") as "[ι τ]".
         by simpl; lia.
       iApply (inject_spec_helper with "[ι O]").
+        { assumption. }
         { iFrame. iExact "Hd". }
       iNext.
       iIntros (d') "(Hd' & O)".
@@ -76,6 +79,7 @@ Section proof.
         by simpl; lia.
       wp_pures.
       iApply (push_spec_helper with "[ι O]").
+        { assumption. }
         { iFrame. iExact "Hd". }
       iNext.
       iIntros (d') "(Hd' & O)".
@@ -113,7 +117,9 @@ Section proof.
     rewrite /dconcat /IsDeque.
     wp_pures.
     iDestruct (split_time 1 with "τ") as "[ι τ]". by lia.
+    rewrite -COST_ANALYSIS.
     wp_apply (tick_spec with "ι") as "_".
+    rewrite COST_ANALYSIS.
     wp_pures.
     (* trivial cases *)
     rewrite {1} isDeque_unfold.
@@ -212,6 +218,7 @@ Section proof.
     iDestruct (na_own_acc _ _ _ (next_stage n) with "O") as "[O A]".
     iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
     wp_apply (inject_spec_helper with "[Hld1 ι O]") as "%ld1' [#Hld1' O]".
+      { assumption. }
       { iFrame "#". iFrame. }
     wp_pures.
     wp_bind (if: _ then _ else _)%E.
@@ -257,6 +264,7 @@ Section proof.
         wp_apply (abuffer_spec with "Hs1''") as "%ts1'' #Hts1''".
           { inversion Hks1''; [lia | list_elem_of]. }
         wp_apply (inject_spec_helper with "[Hld1' ι O]") as "%ld1'' [#Hld1'' O]".
+          { assumption. }
           { iFrame "#". iFrame. }
         iDestruct ("A" with "O") as "O".
         iExists ((ltr1 ++ ⋅(md1, rd1, s1')%V) ++ ⋅ts1''%V),
@@ -287,6 +295,7 @@ Section proof.
     iDestruct (na_own_acc _ _ _ (next_stage n) with "O") as "[O A]".
     iDestruct (split_time time_for_push with "τ") as "[ι τ]". by lia.
     wp_apply (push_spec_helper with "[Hrd2 ι O]") as "%rd2' [#Hrd2' O]".
+    { assumption. }
     { iFrame "#". iFrame. }
     iDestruct ("A" with "O") as "O".
     wp_pures.
@@ -334,6 +343,7 @@ Section proof.
         wp_apply (abuffer_spec with "Hp2'") as "%tp2' #Htp2'".
           { inversion Hp21'; [lia | list_elem_of]. }
         wp_apply (push_spec_helper with "[Hrd2' ι O]") as "%rd2'' [#Hrd2'' O]".
+          { assumption. }
           { iFrame "#". iFrame. }
         iDestruct ("A" with "O") as "O".
         iFrame.

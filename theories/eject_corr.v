@@ -14,9 +14,7 @@ Section proof.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   Lemma eject_spec_helper oD x (ℓ : loc) :
     {{{ isDeque (oD ++ ⋅x) (SOMEV #ℓ) }}}
@@ -33,8 +31,8 @@ Section proof.
     iDestruct "Hd" as "[[%H _] | (%ℓ' & %Heqℓ & #Hℓ)]". by inversion H.
     inversion Heqℓ as [H]. rewrite -H. clear Heqℓ H ℓ'.
     wp_pures.
-    iDestruct (TIME_CHEAT _) as "ι".
-    wp_apply (tick_spec with "ι") as "_".
+    wp_apply (tick_spec) as "_".
+      { rewrite NO_COST_ANALYSIS time_zero //. }
     wp_pures.
     wp_apply (csref_load with "[Hℓ]") as (d) "πd". by apply fiveTuplePersistent.
       by iExact "Hℓ".
@@ -68,10 +66,9 @@ Section proof.
           by iFrame.
         }
         wp_pures.
-        wp_apply (safe_naive_eject) as (x' d' o') "(Hd' & %Heq)".
-          { iFrame "#".
-          }
-        destruct (app_sing_inv _ _ _ _ Heq) as [-> ->].
+        wp_apply (safe_naive_eject NO_COST_ANALYSIS) as (x' d' o') "(Hd' & %Heq)".
+          { iFrame "#". }
+        destruct (app_sing_inv NO_COST_ANALYSIS _ _ _ _ Heq) as [-> ->].
         iApply "Hψ".
         by iFrame.
       Transparent fiveTuple.
@@ -82,6 +79,7 @@ Section proof.
     iIntros (false_) "->".
     wp_pures.
     wp_apply (prepare_eject_spec with "[Hunsafe]").
+    - assumption.
     - iFrame.
       iIntros (ℓ' x' o') "Hℓ'".
       Transparent eject_nonempty.
@@ -110,6 +108,7 @@ Section proof.
       }
       iIntros "_". wp_pures.
       wp_apply (safe_naive_eject).
+      + assumption.
       + iFrame.
         iExists p, l, m, r, s, op, ol, om, or, os, kp, kMd, ks, ltr, rtr.
         doneL.
@@ -119,7 +118,7 @@ Section proof.
         iSplit. iApply (big_sepL2_mono with "Hrtr"). by auto.
         done.
       + iIntros (x' d' o') "[Hd %Heq]".
-        destruct (app_sing_inv _ _ _ _ Heq) as [-> ->].
+        destruct (app_sing_inv NO_COST_ANALYSIS _ _ _ _ Heq) as [-> ->].
         iApply "Hψ".
         iFrame.
   Qed.

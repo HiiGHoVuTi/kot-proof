@@ -19,6 +19,8 @@ Section lemmas.
   Definition Δ (kp ks : nat) := (kp ∘ ks) - (kp ⋄ ks).
   Notation "kp ⊻ ks" := ((kp ∘ ks) + (kp ⋄ ks)) (at level 60).
 
+  Variable COST_ANALYSIS : TICK_COST = 1.
+
   (* Five-tuple configuration for calling naive_eject *)
   Inductive eject_configuration : nat -> nat -> nat -> nat -> nat -> Prop :=
     | eject_suffix_only : forall s, s ∈ [1..8] -> eject_configuration 0 0 0 0 s
@@ -248,7 +250,9 @@ Section lemmas.
         * iIntros (y).
           rewrite /inject.
           wp_pures.
+          rewrite -COST_ANALYSIS.
           wp_apply (tick_spec with "τ") as "_".
+          rewrite COST_ANALYSIS.
           rewrite /asingleton.
           wp_pures.
           wp_apply (bpush_spec) as (b) "Hb". by iApply bempty_spec.
@@ -288,7 +292,9 @@ Section lemmas.
         iIntros (y').
         rewrite /inject.
         wp_pures.
+        rewrite -COST_ANALYSIS.
         wp_apply (tick_spec with "τ") as "_".
+        rewrite COST_ANALYSIS.
         wp_pures.
         wp_load.
         wp_pures.
@@ -331,7 +337,9 @@ Section lemmas.
       iIntros (y).
       rewrite /inject.
       wp_pures.
+      rewrite -COST_ANALYSIS.
       wp_apply (tick_spec with "τ") as "_".
+      rewrite COST_ANALYSIS.
       wp_pures.
       wp_load.
       wp_pures.
@@ -441,76 +449,6 @@ Section lemmas.
         ⌜ o = fst_content ++ List.concat child_content ++ lst_content ⌝
   )%I.
 
-  (* NOTE(Juliette): slightly different: antinormalisation is necessary to have the right format for analysis *)
-  (*
-  Lemma special_decidable : forall n o t,
-    triple π n o t -∗
-    WP antinormalize t {{ t',
-      isSpecialTriple n o t'
-    ∨ isNotSpecialTriple n o t'
-    }}.
-  Proof.
-    iIntros (n o t) "Ht".
-    rewrite triple_unfold.
-    iDestruct "Ht" as (f c l fc cc lc kFst kLst tr) "(%conf & -> & #Hf & #Hc & #Hl & Htr & %Hoeq)".
-    rewrite /antinormalize; wp_pures.
-    inversion conf.
-    - inversion H2.
-      + inversion H0; wp_apply (bis_empty_spec with "Hl") as "_"; wp_pures.
-        * iRight.
-          iDestruct (buffer_length with "Hl") as "%H'".
-          destruct lc; [| inversion H'].
-          destruct cc; [| inversion H].
-          iDestruct (big_sepL2_nil_inv_l with "Htr") as "->".
-          iExists bempty, c, f, [], [], fc, 0, kFst, [].
-          rewrite H9.
-          iFrame. iFrame "#".
-          iSplitR. iPureIntro. rewrite -H. by constructor.
-          doneL.
-          iSplitR. by iApply bempty_spec.
-          iSplitR. iModIntro. done.
-          iPureIntro.
-          rewrite Hoeq /= app_nil_r //.
-        * inversion H9; [| inversion H13 ].
-          iLeft.
-          iDestruct (buffer_length with "Hl") as "%H'".
-          destruct lc; [| inversion H'].
-          destruct cc; [| inversion H].
-          iDestruct (big_sepL2_nil_inv_l with "Htr") as "->".
-          iExists bempty, c, f, [], [], fc, 0, kFst, [].
-          rewrite H13.
-          iFrame "#".
-          iSplitR. iPureIntro. simpl. by easy_config.
-          doneL.
-          iSplitR. by iApply bempty_spec.
-          iSplitR. iModIntro. done.
-          iPureIntro.
-          rewrite Hoeq /= app_nil_r //.
-      + wp_apply (bis_empty_spec with "Hl") as "_"; wp_pures.
-        clear l0 H7 H2 H3 x0 y0 H4 H5.
-        assert (bool_decide (kLst = 0%nat) = false) as -> by invert_all_in.
-        wp_pures.
-        iLeft. iModIntro.
-        destruct cc; [| inversion H].
-        iDestruct (big_sepL2_nil_inv_l with "Htr") as "->".
-        iExists f, c, l, fc, [], lc, kFst, kLst, [].
-        iFrame "#".
-        iSplitR. iPureIntro. simpl. by easy_config.
-        doneL.
-        doneL.
-        done.
-    - wp_apply (bis_empty_spec with "Hl") as "_".
-      assert (bool_decide (kLst = 0%nat) = false) as -> by invert_all_in.
-      wp_pures.
-      iLeft. iModIntro.
-      iExists f, c, l, fc, cc, lc, kFst, kLst, tr.
-      iFrame "#".
-      iSplitR. iPureIntro. simpl. by easy_config.
-      doneL.
-      doneR.
-      iApply (big_sepL2_mono with "Htr"). by auto.
-  Qed.
-  *)
   Lemma antinormalize_special_spec : forall n o t,
     {{{ @pop_cost_lemmas.isSpecialTriple Σ _ _ π  n o t }}}
       antinormalize t
@@ -685,7 +623,7 @@ Section lemmas.
     iDestruct (big_sepL2_app_inv with "Htr") as "(Htr & Ht)". by right.
     iAssert (triple π n l t) with "[Ht]" as "Ht".
       { simpl. iDestruct "Ht" as "[A _]". done. }
-    iDestruct (pop_cost_lemmas.special_decidable with "Ht") as "[#Ht' | #Ht']";
+    iDestruct (pop_cost_lemmas.special_decidable COST_ANALYSIS with "Ht") as "[#Ht' | #Ht']";
     iCombine "Ht' Ht'" as "[Ht! Ht!']";
     iDestruct "Ht!'" as (fi c la fc cc lc kF kL tr) "(%conf & -> & Hf' & Hc & Hl & Htrtr & %Hleq)";
     inversion conf.
@@ -1041,6 +979,7 @@ Section lemmas.
               iModIntro. wp_pures.
               iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
               wp_apply (dconcat_spec_helper with "[Hℓc Hl' ι O]") as (l) "[Hl O]".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -1114,6 +1053,7 @@ Section lemmas.
                 iModIntro. wp_pures.
                 iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
                 wp_apply (dconcat_spec_helper with "[Hc Hl' ι O]") as (l) "[Hl O]".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -1141,6 +1081,7 @@ Section lemmas.
                 iModIntro. wp_pures.
                 iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
                 wp_apply (dconcat_spec_helper with "[Hc Hl' ι O]") as (l) "[Hl O]".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -1350,6 +1291,7 @@ Section lemmas.
               iModIntro. wp_pures.
               iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
               wp_apply (dconcat_spec_helper with "[Hℓc Hr' ι O]") as (r) "[Hr O]".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -1427,6 +1369,7 @@ Section lemmas.
               iModIntro. wp_pures.
               iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
               wp_apply (dconcat_spec_helper with "[Hc Hr' ι O]") as (r) "[Hr O]".
+                { assumption. }
                 { iFrame. iExact "Hc". }
               wp_pures.
               iModIntro.

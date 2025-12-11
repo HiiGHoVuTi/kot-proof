@@ -22,237 +22,151 @@ Section assumptions.
   Section buffers.
     (* Buffers will have bounded size, guaranteeing O(1) time and space complexity *)
 
-    Axiom buffer : nat -> list val -> val -> iProp Σ.
-    Axiom buffer_persistent : forall n o v, Persistent (buffer n o v).
+    Parameter buffer : nat -> list val -> val -> iProp Σ.
+    Parameter buffer_persistent : forall n o v, Persistent (buffer n o v).
     Global Instance Ibuffer_persistent n o v : Persistent (buffer n o v).
     Proof. by apply buffer_persistent. Qed.
 
-    Axiom bempty : val.
-    Axiom bempty_spec : ⊢ buffer 0 [] bempty.
+    Parameter bempty : val.
+    Parameter bempty_spec : ⊢ buffer 0 [] bempty.
 
-    Axiom buffer_length : forall n o b, buffer n o b ⊢ ⌜ length o = n ⌝.
-    Axiom buffer_injective : forall k k' o o' b, buffer k o b ∗ (buffer k' o' b : iProp Σ) ⊢ ⌜ o = o' ⌝.
+    Parameter buffer_length : forall n o b, buffer n o b ⊢ ⌜ length o = n ⌝.
+    Parameter buffer_injective : forall k k' o o' b, buffer k o b ∗ (buffer k' o' b : iProp Σ) ⊢ ⌜ o = o' ⌝.
 
-    Axiom blength : val.
-    Axiom blength_spec : forall n o b,
+    Parameter blength : val.
+    Parameter blength_spec : forall n o b,
       {{{ buffer n o b }}} blength b {{{ RET #n; emp }}}.
 
-    Axiom bis_empty : val.
-    Axiom bis_empty_spec : forall n o b,
+    Parameter bis_empty : val.
+    Parameter bis_empty_spec : forall n o b,
       {{{ buffer n o b }}} bis_empty b {{{ RET #(bool_decide (n = 0%nat)); emp }}}.
 
-    Axiom bpush : val.
-    Axiom bpush_spec : forall x n o b,
+    Parameter bpush : val.
+    Parameter bpush_spec : forall x n o b,
       {{{ buffer n o b }}} bpush x b {{{ b', RET b'; buffer (n+1) (⋅x++o) b' }}}.
 
-    Axiom bpop : val.
-    Axiom bpop_spec : forall n o b,
+    Parameter bpop : val.
+    Parameter bpop_spec : forall n o b,
       {{{ buffer (n+1) o b }}} bpop b {{{ b' x o', RET (x, b')%V; buffer n o' b' ∗ ⌜ o = ⋅x ++ o' ⌝ }}}.
 
-    Axiom bfirst : val.
-    Axiom bfirst_spec : forall x n o b,
+    Parameter bfirst : val.
+    Parameter bfirst_spec : forall x n o b,
       {{{ buffer n (⋅x++o) b }}} bfirst b {{{ RET x; emp }}}.
 
-    Axiom binject : val.
-    Axiom binject_spec : forall x n o b,
+    Parameter binject : val.
+    Parameter binject_spec : forall x n o b,
       {{{ buffer n o b }}} binject b x {{{ b', RET b'; buffer (n+1) (o++⋅x) b' }}}.
 
-    Axiom beject : val.
-    Axiom beject_spec : forall n o b,
+    Parameter beject : val.
+    Parameter beject_spec : forall n o b,
       {{{ buffer (n+1) o b }}} beject b {{{ b' o' x, RET (b', x)%V; buffer n o' b' ∗ ⌜ o = o' ++ ⋅x ⌝ }}}.
 
-    Axiom blast : val.
-    Axiom blast_spec : forall x n o b,
+    Parameter blast : val.
+    Parameter blast_spec : forall x n o b,
       {{{ buffer (n+1) (o++⋅x) b }}} blast b {{{ RET x; emp }}}.
 
-    (* map??? *)
-
     (* TODO(Juliette): fold_left & fold_right *)
-    Axiom bfold_right : val.
-    Axiom bfold_right_spec : forall n, has_fold_right_spec bfold_right (buffer n).
-    Axiom bfold_left : val.
-    Axiom bfold_left_spec : forall n, has_fold_left_spec bfold_left (buffer n).
+    Parameter bfold_right : val.
+    Parameter bfold_right_spec : forall n, has_fold_right_spec bfold_right (buffer n).
+    Parameter bfold_left : val.
+    Parameter bfold_left_spec : forall n, has_fold_left_spec bfold_left (buffer n).
 
-    Axiom bdoubleton : val.
-    Axiom bdoubleton_spec : forall x y,
+    Parameter bdoubleton : val.
+    Parameter bdoubleton_spec : forall x y,
       {{{ emp }}} bdoubleton x y {{{ b, RET b; buffer 2 (⋅x ++ ⋅y) b }}}.
 
-    Axiom bhas_length_3 : val.
-    Axiom bhas_length_3_spec : forall n b o,
+    Parameter bhas_length_3 : val.
+    Parameter bhas_length_3_spec : forall n b o,
       {{{ buffer n o b }}} bhas_length_3 b {{{ RET #(bool_decide (n = 3%nat)); emp }}}.
 
-    Axiom bhas_length_8 : val.
-    Axiom bhas_length_8_spec : forall n b o,
+    Parameter bhas_length_8 : val.
+    Parameter bhas_length_8_spec : forall n b o,
       {{{ buffer n o b }}} bhas_length_8 b {{{ RET #(bool_decide (n = 8%nat)); emp }}}.
 
-    Axiom bhas_length_6 : val.
-    Axiom bhas_length_6_spec : forall n b o,
+    Parameter bhas_length_6 : val.
+    Parameter bhas_length_6_spec : forall n b o,
       {{{ buffer n o b }}} bhas_length_6 b {{{ RET #(bool_decide (n = 6%nat)); emp }}}.
 
-    Axiom bmove_left_1_33 : val.
-    Axiom bmove_left_1_33_spec : forall b1 b2 o1 o2,
+    Parameter bmove_left_1_33 : val.
+    Parameter bmove_left_1_33_spec : forall b1 b2 o1 o2,
       {{{ buffer 3 o1 b1 ∗ buffer 3 o2 b2 }}}
         bmove_left_1_33 b1 b2
       {{{ b1' b2' o1' o2', RET (b1', b2')%V;
           buffer 4 o1' b1' ∗ buffer 2 o2' b2' ∗ ⌜ o1 ++ o2 = o1' ++ o2' ⌝ }}}.
 
-    Axiom bmove_right_1_33 : val.
-    Axiom bmove_right_1_33_spec : forall b1 b2 o1 o2,
+    Parameter bmove_right_1_33 : val.
+    Parameter bmove_right_1_33_spec : forall b1 b2 o1 o2,
       {{{ buffer 3 o1 b1 ∗ buffer 3 o2 b2 }}}
         bmove_right_1_33 b1 b2
       {{{ b1' b2' o1' o2', RET (b1', b2')%V;
           buffer 2 o1' b1' ∗ buffer 4 o2' b2' ∗ ⌜ o1 ++ o2 = o1' ++ o2' ⌝ }}}.
 
-    Axiom bdouble_move_left : val.
-    Axiom bdouble_move_left_spec : forall b1 b2 b3 o1 o2 o3 n3,
+    Parameter bdouble_move_left : val.
+    Parameter bdouble_move_left_spec : forall b1 b2 b3 o1 o2 o3 n3,
       {{{ buffer 3 o1 b1 ∗ buffer 2 o2 b2 ∗ buffer (n3+1) o3 b3 }}}
         bdouble_move_left b1 b2 b3
       {{{ b1' b2' b3' o1' o2' o3', RET (b1', b2', b3')%V;
         buffer 4 o1' b1' ∗ buffer 2 o2' b2' ∗ buffer n3 o3' b3' ∗
         ⌜ o1 ++ o2 ++ o3 = o1' ++ o2' ++ o3' ⌝ }}}.
 
-    Axiom bdouble_move_right : val.
-    Axiom bdouble_move_right_spec : forall b1 b2 b3 o1 o2 o3 n1,
+    Parameter bdouble_move_right : val.
+    Parameter bdouble_move_right_spec : forall b1 b2 b3 o1 o2 o3 n1,
       {{{ buffer (n1+1) o1 b1 ∗ buffer 2 o2 b2 ∗ buffer 3 o3 b3 }}}
         bdouble_move_right b1 b2 b3
       {{{ b1' b2' b3' o1' o2' o3', RET (b1', b2', b3')%V;
           buffer n1 o1' b1' ∗ buffer 2 o2' b2' ∗ buffer 4 o3' b3' ∗
           ⌜ o1 ++ o2 ++ o3 = o1' ++ o2' ++ o3' ⌝ }}}.
 
-    Axiom bconcat23 : val.
-    Axiom bconcat23_spec : forall b1 b2 o1 o2,
+    Parameter bconcat23 : val.
+    Parameter bconcat23_spec : forall b1 b2 o1 o2,
       {{{ buffer 2 o1 b1 ∗ buffer 3 o2 b2 }}}
         bconcat23 b1 b2
       {{{ b', RET b'; buffer 5 (o1 ++ o2) b' }}}.
 
-    Axiom bconcat32 : val.
-    Axiom bconcat32_spec : forall b1 b2 o1 o2,
+    Parameter bconcat32 : val.
+    Parameter bconcat32_spec : forall b1 b2 o1 o2,
       {{{ buffer 3 o1 b1 ∗ buffer 2 o2 b2 }}}
         bconcat32 b1 b2
       {{{ b', RET b'; buffer 5 (o1 ++ o2) b' }}}.
 
-    Axiom bconcat323 : val.
-    Axiom bconcat323_spec : forall b1 b2 b3 o1 o2 o3,
+    Parameter bconcat323 : val.
+    Parameter bconcat323_spec : forall b1 b2 b3 o1 o2 o3,
       {{{ buffer 3 o1 b1 ∗ buffer 2 o2 b2 ∗ buffer 3 o3 b3 }}}
         bconcat323 b1 b2 b3
       {{{ b', RET b'; buffer 8 (o1 ++ o2 ++ o3) b' }}}.
 
-    Axiom bsplit23l : val.
-    Axiom bsplit23l_spec : forall n o b,
+    Parameter bsplit23l : val.
+    Parameter bsplit23l_spec : forall n o b,
       {{{ buffer n o b ∗ ⌜ n ∈ [2..6] ⌝ }}}
         bsplit23l b
       {{{ b1 b2 o1 o2 n1 n2, RET (b1, b2)%V;
           buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [2; 3] /\ n2 ∈ [0; 2; 3] /\ o = o1 ++ o2 ⌝ }}}.
 
-    Axiom bsplit23r : val.
-    Axiom bsplit23r_spec : forall n o b,
+    Parameter bsplit23r : val.
+    Parameter bsplit23r_spec : forall n o b,
       {{{ buffer n o b ∗ ⌜ n ∈ [2..6] ⌝ }}}
         bsplit23r b
       {{{ b1 b2 o1 o2 n1 n2, RET (b1, b2)%V;
           buffer n1 o1 b1 ∗ buffer n2 o2 b2 ∗ ⌜ n1 ∈ [0; 2; 3] /\ n2 ∈ [2; 3] /\ o = o1 ++ o2 ⌝ }}}.
 
-    Axiom bsplit8 : val.
-    Axiom bsplit8_spec : forall o b,
+    Parameter bsplit8 : val.
+    Parameter bsplit8_spec : forall o b,
       {{{ buffer 8 o b }}}
         bsplit8 b
       {{{ b1 b2 b3 o1 o2 o3, RET (b1, b2, b3)%V;
           buffer 3 o1 b1 ∗ buffer 2 o2 b2 ∗ buffer 3 o3 b3 ∗ ⌜ o = o1 ++ o2 ++ o3 ⌝ }}}.
 
-    Axiom bsplit642 : val.
-    Axiom bsplit642_spec : forall o b,
+    Parameter bsplit642 : val.
+    Parameter bsplit642_spec : forall o b,
       {{{ buffer 6 o b }}}
         bsplit642 b
       {{{ b1 b2 o1 o2, RET (b1, b2)%V; buffer 4 o1 b1 ∗ buffer 2 o2 b2 ∗ ⌜ o = o1 ++ o2 ⌝ }}}.
 
-    Axiom bsplit624 : val.
-    Axiom bsplit624_spec : forall o b,
+    Parameter bsplit624 : val.
+    Parameter bsplit624_spec : forall o b,
       {{{ buffer 6 o b }}}
         bsplit624 b
       {{{ b1 b2 o1 o2, RET (b1, b2)%V; buffer 2 o1 b1 ∗ buffer 4 o2 b2 ∗ ⌜ o = o1 ++ o2 ⌝ }}}.
-
-    (*
-    Definition raw_buffer (o : list val) : val -> iProp Σ.
-    Admitted.
-
-    Global Instance raw_bufferPersistent o v : Persistent (raw_buffer o v).
-    Admitted.
-
-    Definition empty_buffer : val.
-    Admitted.
-
-    Axiom empty_is_buffer : ⊢ raw_buffer [] empty_buffer.
-
-    Definition bpush : val.
-    Admitted.
-
-    Property bpush_spec : forall o b x,
-      {{{ raw_buffer o b }}}
-        bpush x b
-      {{{ b', RET b'; raw_buffer (⋅x ++ o) b' }}}.
-    Admitted.
-
-    Definition bpop : val.
-    Admitted.
-
-    Property bpop_spec : forall o b x,
-      {{{ raw_buffer (⋅x ++ o) b }}}
-        bpop b
-      {{{ b', RET (x, b')%V; raw_buffer o b' }}}.
-    Admitted.
-
-    Definition binject : val.
-    Admitted.
-
-    Property binject_spec : forall o b x,
-      {{{ raw_buffer o b }}}
-        binject x b
-      {{{ b', RET b'; raw_buffer (o ++ ⋅x) b' }}}.
-    Admitted.
-
-    Definition beject : val.
-    Admitted.
-
-    Property beject_spec : forall o b x,
-      {{{ raw_buffer (o ++ ⋅x) b }}}
-        beject b
-      {{{ b', RET (x, b')%V; raw_buffer o b' }}}.
-    Admitted.
-
-    Definition bsize : val.
-    Admitted.
-
-    Property bsize_spec : forall o b,
-      {{{ raw_buffer o b }}}
-        bsize b
-      {{{ RET #(length o); emp }}}.
-    Admitted.
-
-    Definition partition_buffer_left : val.
-    Admitted.
-
-    Property partition_buffer_left_spec : forall o b,
-      {{{ raw_buffer o b ∗ ⌜ length o ∈ [2..6] ⌝ }}}
-        partition_buffer_left b
-      {{{ b1 b2, RET (b1, b2)%V;
-        ∃ o1 o2, raw_buffer o1 b1 ∗ raw_buffer o2 b2 ∗
-          ⌜ length o1 ∈ [2; 3] ∧ length o2 ∈ [0; 2; 3] ∧ o1 ++ o2 = o ⌝ }}}.
-    Admitted.
-
-    Definition partition_buffer_right : val.
-    Admitted.
-
-    Property partition_buffer_right_spec : forall o b,
-      {{{ raw_buffer o b ∗ ⌜ length o ∈ [2..6] ⌝ }}}
-        partition_buffer_right b
-      {{{ b1 b2, RET (b1, b2)%V;
-        ∃ o1 o2, raw_buffer o1 b1 ∗ raw_buffer o2 b2 ∗
-          ⌜ length o1 ∈ [0; 2; 3] ∧ length o2 ∈ [2; 3] ∧ o1 ++ o2 = o ⌝ }}}.
-    Admitted.
-
-    (* NOTE(Juliette): basically [fold_right push] and [fold_left inject] *)
-    Definition push_whole_buffer : val. Admitted.
-    Definition inject_whole_buffer : val. Admitted.
-    *)
 
   End buffers.
 

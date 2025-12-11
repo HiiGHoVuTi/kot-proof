@@ -14,9 +14,7 @@ Section lemmas.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   (* Five-tuple configuration for calling naive_pop *)
   Inductive pop_configuration : nat -> nat -> nat -> nat -> nat -> Prop :=
@@ -223,8 +221,8 @@ Section lemmas.
         * iIntros (y).
           rewrite /push.
           wp_pures.
-          iDestruct (TIME_CHEAT _) as "τ".
-          wp_apply (tick_spec with "τ") as "_".
+          wp_apply (tick_spec) as "_".
+            { rewrite NO_COST_ANALYSIS time_zero //. }
           rewrite /asingleton.
           wp_pures.
           wp_apply (bpush_spec) as (b) "Hb". by iApply bempty_spec.
@@ -259,8 +257,8 @@ Section lemmas.
         iIntros (y').
         rewrite /push.
         wp_pures.
-        iDestruct (TIME_CHEAT _) as "τ".
-        wp_apply (tick_spec with "τ") as "_".
+        wp_apply (tick_spec) as "_".
+          { rewrite NO_COST_ANALYSIS time_zero //. }
         wp_pures.
         wp_load.
         wp_pures.
@@ -300,8 +298,8 @@ Section lemmas.
       iIntros (y).
       rewrite /push.
       wp_pures.
-      iDestruct (TIME_CHEAT _) as "τ".
-      wp_apply (tick_spec with "τ") as "_".
+      wp_apply (tick_spec) as "_".
+        { rewrite NO_COST_ANALYSIS time_zero //. }
       wp_pures.
       wp_load.
       wp_pures.
@@ -764,6 +762,7 @@ Section lemmas.
               iIntros (r') "Hr'".
               iModIntro. wp_pures.
               wp_apply (dconcat_spec_helper with "[Hℓc Hr']") as (r) "Hr".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -829,6 +828,7 @@ Section lemmas.
                 iIntros (r') "Hr'".
                 iModIntro. wp_pures.
                 wp_apply (dconcat_spec_helper with "[Hc Hr']") as (r) "Hr".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -854,6 +854,7 @@ Section lemmas.
                 iIntros (r') "Hr'".
                 iModIntro. wp_pures.
                 wp_apply (dconcat_spec_helper with "[Hc Hr']") as (r) "Hr".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -955,40 +956,6 @@ Section lemmas.
             iPureIntro.
             rewrite Hoeq Hleq /= app_nil_r.
             aac_reflexivity.
-          (*
-          -- assert (bool_decide (kL = 0%nat) = false) as -> by invert_all_in.
-            wp_pures.
-            wp_apply (abuffer_spec_explicit with "Hla") as "Ht". by assumption.
-            wp_pures.
-            wp_bind (push _ _)%E.
-            iApply (wp_strong_mono with "Hd'"). { auto. } { auto. }
-            iIntros (r') "Hr'".
-            iModIntro. wp_pures.
-            iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
-            wp_apply (dconcat_spec_helper with "[Hℓc Hr' ι O]") as (r) "[Hr O]".
-              { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
-            wp_pures.
-            iModIntro.
-            iApply "Hψ".
-            iSplitR "O"; [| done].
-            iExists b', NONEV, fi, r, s, (op++om), [], fc, (cc++⋅lc++os'), os,
-              5, 2, kSf, [], (tr++⋅(la, NONEV, bempty)%V++rtr').
-            doneL.
-            iSplit. iPureIntro. by easy_config.
-            iSplitL "pot". iDestruct (split_time (5 ⋄ kSf) with "pot") as "[ι _]".
-              clear H H6 H8; invert_all_in; simpl; lia.
-              by iExact "ι".
-            iFrame. iFrame "#".
-            iSplit. by isEmptyDeque.
-            doneL.
-            iSplit.
-            ** iSplit. iApply (big_sepL2_mono with "Htrtr"). by auto.
-              doneL.
-              iApply (big_sepL2_mono with "Htr'"). by auto.
-            ** iPureIntro.
-              rewrite !concat_app Hoeq Hleq /= !app_nil_r.
-              aac_reflexivity.
-      *)
         Opaque isNotSpecialTriple.
     - wp_pures.
       wp_bind (let: "f" := _ in _)%E.
@@ -1048,6 +1015,7 @@ Section lemmas.
               iIntros (l') "Hl'".
               iModIntro. wp_pures.
               wp_apply (dconcat_spec_helper with "[Hℓc Hl']") as (l) "Hl".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -1115,6 +1083,7 @@ Section lemmas.
               iIntros (l') "Hl'".
               iModIntro. wp_pures.
               wp_apply (dconcat_spec_helper with "[Hc Hl']") as (l) "Hl".
+                { assumption. }
                 { iFrame. iExact "Hc". }
               wp_pures.
               iModIntro.
@@ -1217,4 +1186,3 @@ Section lemmas.
   Qed.
 
 End lemmas.
-

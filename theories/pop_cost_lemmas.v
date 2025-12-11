@@ -15,6 +15,8 @@ Section lemmas.
   Context `{!heapGS Σ} `{!na_invG Σ}.
   Context {π : gname}.
 
+  Variable COST_ANALYSIS : TICK_COST = 1.
+
   Notation "kp ∘ ks" := (kp - 1 ⋄ ks).
   Definition Δ (kp ks : nat) := (kp ∘ ks) - (kp ⋄ ks).
   Notation "kp ⊻ ks" := ((kp ∘ ks) + (kp ⋄ ks)) (at level 60).
@@ -39,15 +41,6 @@ Section lemmas.
       ([∗list] c;tr ∈ right_content;right_triples, ▷ triple π (S n) c tr) ∗
       ⌜ o = pr_content ++ List.concat left_content ++ md_content ++ List.concat right_content ++ sf_content ⌝
   )%I.
-
-  (*
-  Global Instance isPopFiveTuplePersistent n o kp ks d : Persistent (isPopFiveTuple n o kp ks d).
-  Proof.
-    rewrite /isPopFiveTuple.
-    repeat (apply bi.exist_persistent; intro).
-    repeat (apply bi.sep_persistent; apply _).
-  Qed.
-  *)
 
  Definition isUnsafePopFiveTuple := (
     λ π n o d, ∃ (pr ld md rd sf : val)
@@ -244,7 +237,9 @@ Section lemmas.
         * iIntros (y).
           rewrite /push.
           wp_pures.
+          rewrite -COST_ANALYSIS.
           wp_apply (tick_spec with "τ") as "_".
+          rewrite COST_ANALYSIS.
           rewrite /asingleton.
           wp_pures.
           wp_apply (bpush_spec) as (b) "Hb". by iApply bempty_spec.
@@ -280,7 +275,9 @@ Section lemmas.
         iIntros (y').
         rewrite /push.
         wp_pures.
+        rewrite -COST_ANALYSIS.
         wp_apply (tick_spec with "τ") as "_".
+        rewrite COST_ANALYSIS.
         wp_pures.
         wp_load.
         wp_pures.
@@ -320,7 +317,9 @@ Section lemmas.
       iIntros (y).
       rewrite /push.
       wp_pures.
+      rewrite -COST_ANALYSIS.
       wp_apply (tick_spec with "τ") as "_".
+      rewrite COST_ANALYSIS.
       wp_pures.
       wp_load.
       wp_pures.
@@ -828,6 +827,7 @@ Section lemmas.
               iModIntro. wp_pures.
               iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
               wp_apply (dconcat_spec_helper with "[Hℓc Hr' ι O]") as (r) "[Hr O]".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -898,6 +898,7 @@ Section lemmas.
                 iModIntro. wp_pures.
                 iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
                 wp_apply (dconcat_spec_helper with "[Hc Hr' ι O]") as (r) "[Hr O]".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -926,6 +927,7 @@ Section lemmas.
                 iModIntro. wp_pures.
                 iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
                 wp_apply (dconcat_spec_helper with "[Hc Hr' ι O]") as (r) "[Hr O]".
+                  { assumption. }
                   { iFrame. by iFrame "#". }
                 wp_pures.
                 iModIntro.
@@ -1132,6 +1134,7 @@ Section lemmas.
               iModIntro. wp_pures.
               iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
               wp_apply (dconcat_spec_helper with "[Hℓc Hl' ι O]") as (l) "[Hl O]".
+                { assumption. }
                 { iFrame. ℓisDeque ℓc. iExact "Hℓc". }
               wp_pures.
               iModIntro.
@@ -1204,6 +1207,7 @@ Section lemmas.
               iModIntro. wp_pures.
               iDestruct (split_time time_for_concat with "τ") as "[ι τ]". by lia.
               wp_apply (dconcat_spec_helper with "[Hc Hl' ι O]") as (l) "[Hl O]".
+                { assumption. }
                 { iFrame. iExact "Hc". }
               wp_pures.
               iModIntro.

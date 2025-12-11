@@ -11,6 +11,14 @@ It offers proofs of correctness, thread-safety and O(1) amortised single-threade
 
 If you are coming from the corresponding article, the main theorems are showcased in `theories/article.v`.
 
+## What order to read the files
+
+- `common.v` contains the axioms for buffers and the Heaplang implementation for deques
+- `tick.v` contains axioms for time credits (listed as axioms but implementations are available)
+- `shared_ref.v` contains the two stable reference interfaces
+- `deque_(corr|cost).v` contains the definition of the deque predicate for the given proof
+- `(push|concat|pop)_(corr|cost).v`/`(pop|eject)_(corr|cost)_lemmas.v` ontains the proof for the specific function, either the cost or correction analysis
+
 # Compiling the Proof
 
 First, install the dependencies:

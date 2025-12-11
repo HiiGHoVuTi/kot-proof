@@ -14,9 +14,7 @@ Section proof.
 
   Context `{!heapGS Σ}.
 
-  (* since this is a functional correction proof, we use a cheat that is confined to this section *)
-  Let TIME_CHEAT : ∀ k, ⊢ (⏱ k : iProp Σ).
-  Admitted.
+  Variable NO_COST_ANALYSIS : TICK_COST = 0.
 
   Lemma inject_spec_helper oD x d :
     {{{ isDeque oD d }}}
@@ -26,9 +24,9 @@ Section proof.
     iLöb as "iH" forall (x d oD).
     iIntros (ψ) "Hd Hψ".
     rewrite /inject.
-    iDestruct (TIME_CHEAT 1) as "ι".
     wp_pures.
-    wp_apply (tick_spec with "ι") as "_".
+    wp_apply (tick_spec) as "_".
+      { rewrite NO_COST_ANALYSIS time_zero //. }
     wp_pures.
     rewrite {1} isDeque_unfold.
     iDestruct "Hd" as "[[-> ->] | (%ℓ & -> & #Hℓ)]".
@@ -94,7 +92,7 @@ Section proof.
           rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
-          wp_apply (csref_alloc (fiveTuple (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'".
+          wp_apply (csref_alloc (fiveTuple (oD++⋅x))) as "%ℓ' #Hℓ'".
           -- iExists b1, ld, b2, rd, sf'',
               o1, [], o2, [], (o3++⋅x),
               3, 2, 4, [], [].
@@ -124,7 +122,7 @@ Section proof.
           rewrite /assemble_.
           wp_apply (binject_spec with "Hsf") as "%sf' #Hsf'".
           wp_pures.
-          wp_apply (csref_alloc (fiveTuple (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'".
+          wp_apply (csref_alloc (fiveTuple (oD++⋅x))) as "%ℓ' #Hℓ'".
           -- iExists bempty, empty, bempty, empty, sf',
               [], [], [], [], (sfC++⋅x),
               0, 0, (S kSf), [], [].
@@ -203,7 +201,7 @@ Section proof.
           wp_pures; clear unit.
           wp_apply (binject_spec with "Ho2") as "%pr3 #Hpr3".
           wp_pures.
-          wp_apply (csref_alloc (fiveTuple (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'". {
+          wp_apply (csref_alloc (fiveTuple (oD++⋅x))) as "%ℓ' #Hℓ'". {
             iExists pr, ld, md, ld', pr3,
               prC, ldC, mdC, (rdC++⋅o1), (o2++⋅x),
               kPr, 2, 5, ltr, (rtr ++ ⋅ (b1, NONEV, bempty)%V).
@@ -249,7 +247,7 @@ Section proof.
           rewrite /assemble_.
           wp_pures.
           wp_bind (ref _)%E.
-          wp_apply (csref_alloc (fiveTuple (oD++⋅x)) with "[ι]") as "%ℓ' #Hℓ'".
+          wp_apply (csref_alloc (fiveTuple (oD++⋅x))) as "%ℓ' #Hℓ'".
           -- iExists pr, ld, md, rd, sf',
               prC, ldC, mdC, rdC, (sfC++⋅x),
               kPr, kMd, (S kSf), ltr, rtr.
